@@ -18,4 +18,7 @@
 # vendor/
 
 # Go workspace file
-go.work
+#go.work*
+
+# Files and Dirs prefixed with an underscore
+_*
