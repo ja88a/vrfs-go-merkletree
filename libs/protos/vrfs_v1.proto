@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/protos/vrfs_v1";
+
+package vrfs_v1;
+
+// The VRFS service definition
+service VerifiableRemoteFileStorageV1 {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply) {} 
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
