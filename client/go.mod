@@ -2,8 +2,10 @@ module github.com/ja88a/vrfs-go-merkletree/client
 
 go 1.21.4
 
+replace github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0 => ../libs/protos
+
 require (
-	github.com/ja88a/vrfs-go-merkletree/libs/protos/vrfs_v1 v0.0.0
+	github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0
 	google.golang.org/grpc v1.59.0
 )
 
@@ -15,5 +17,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
-
-replace github.com/ja88a/vrfs-go-merkletree/libs/protos/vrfs_v1 v0.0.0 => ./../libs/protos/vrfs_v1

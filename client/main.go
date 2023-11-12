@@ -9,7 +9,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/vrfs_v1"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
 )
 
 const (
@@ -30,7 +30,7 @@ func main() {
 	}
 	defer conn.Close()
 	
-	c := pb.NewGreeterClient(conn)
+	c := pb.NewVerifiableRemoteFileStorageClient(conn)
 
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
