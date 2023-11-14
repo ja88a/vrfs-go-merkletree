@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/protos/v1/fileserver";
+
+package fileserver;
+
+message FileUploadRequest {
+    string file_name = 1;
+    bytes chunk = 2;
+}
+  
+message FileUploadResponse {
+  string file_name = 1;
+  uint32 size = 2;
+}
+  
+service FileService {
+   rpc Upload(stream FileUploadRequest) returns(FileUploadResponse);
+}
