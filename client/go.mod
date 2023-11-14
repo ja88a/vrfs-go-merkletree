@@ -9,6 +9,7 @@ replace github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0 => ../libs/protos
 replace github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0 => ../libs/utils
 
 require (
+	github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0
 	github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0
 	google.golang.org/grpc v1.59.0
 )
