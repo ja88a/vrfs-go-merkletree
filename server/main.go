@@ -1,4 +1,4 @@
-// Package main implements a server for Greeter service.
+// Package main implements a server for the VerifiableRemoteFileStorage service API.
 package main
 
 import (
@@ -16,7 +16,7 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// server is used to implement helloworld.GreeterServer.
+// server is used to implement vrfs.VerifiableRemoteFileStorageServer.
 type server struct {
 	pb.UnimplementedVerifiableRemoteFileStorageServer
 }
