@@ -22,7 +22,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FileServiceClient interface {
+	// Initiate a File Upload
 	Upload(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadClient, error)
+	// Retrieve the list of all file hashes for a given bucket / fileset storage
+	BucketFileHashes(ctx context.Context, in *BucketFileHashesRequest, opts ...grpc.CallOption) (*BucketFileHashesResponse, error)
+	// Initiate the download of a file content, part of a given bucket
+	Download(ctx context.Context, in *FileDownloadRequest, opts ...grpc.CallOption) (FileService_DownloadClient, error)
 }
 
 type fileServiceClient struct {
@@ -67,11 +72,57 @@ func (x *fileServiceUploadClient) CloseAndRecv() (*FileUploadResponse, error) {
 	return m, nil
 }
 
+func (c *fileServiceClient) BucketFileHashes(ctx context.Context, in *BucketFileHashesRequest, opts ...grpc.CallOption) (*BucketFileHashesResponse, error) {
+	out := new(BucketFileHashesResponse)
+	err := c.cc.Invoke(ctx, "/fileserver.FileService/BucketFileHashes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *fileServiceClient) Download(ctx context.Context, in *FileDownloadRequest, opts ...grpc.CallOption) (FileService_DownloadClient, error) {
+	stream, err := c.cc.NewStream(ctx, &FileService_ServiceDesc.Streams[1], "/fileserver.FileService/Download", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &fileServiceDownloadClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type FileService_DownloadClient interface {
+	Recv() (*FileDownloadResponse, error)
+	grpc.ClientStream
+}
+
+type fileServiceDownloadClient struct {
+	grpc.ClientStream
+}
+
+func (x *fileServiceDownloadClient) Recv() (*FileDownloadResponse, error) {
+	m := new(FileDownloadResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // FileServiceServer is the server API for FileService service.
 // All implementations must embed UnimplementedFileServiceServer
 // for forward compatibility
 type FileServiceServer interface {
+	// Initiate a File Upload
 	Upload(FileService_UploadServer) error
+	// Retrieve the list of all file hashes for a given bucket / fileset storage
+	BucketFileHashes(context.Context, *BucketFileHashesRequest) (*BucketFileHashesResponse, error)
+	// Initiate the download of a file content, part of a given bucket
+	Download(*FileDownloadRequest, FileService_DownloadServer) error
 	mustEmbedUnimplementedFileServiceServer()
 }
 
@@ -81,6 +132,12 @@ type UnimplementedFileServiceServer struct {
 
 func (UnimplementedFileServiceServer) Upload(FileService_UploadServer) error {
 	return status.Errorf(codes.Unimplemented, "method Upload not implemented")
+}
+func (UnimplementedFileServiceServer) BucketFileHashes(context.Context, *BucketFileHashesRequest) (*BucketFileHashesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BucketFileHashes not implemented")
+}
+func (UnimplementedFileServiceServer) Download(*FileDownloadRequest, FileService_DownloadServer) error {
+	return status.Errorf(codes.Unimplemented, "method Download not implemented")
 }
 func (UnimplementedFileServiceServer) mustEmbedUnimplementedFileServiceServer() {}
 
@@ -121,18 +178,67 @@ func (x *fileServiceUploadServer) Recv() (*FileUploadRequest, error) {
 	return m, nil
 }
 
+func _FileService_BucketFileHashes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BucketFileHashesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FileServiceServer).BucketFileHashes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fileserver.FileService/BucketFileHashes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FileServiceServer).BucketFileHashes(ctx, req.(*BucketFileHashesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FileService_Download_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(FileDownloadRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(FileServiceServer).Download(m, &fileServiceDownloadServer{stream})
+}
+
+type FileService_DownloadServer interface {
+	Send(*FileDownloadResponse) error
+	grpc.ServerStream
+}
+
+type fileServiceDownloadServer struct {
+	grpc.ServerStream
+}
+
+func (x *fileServiceDownloadServer) Send(m *FileDownloadResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // FileService_ServiceDesc is the grpc.ServiceDesc for FileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var FileService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "fileserver.FileService",
 	HandlerType: (*FileServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "BucketFileHashes",
+			Handler:    _FileService_BucketFileHashes_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Upload",
 			Handler:       _FileService_Upload_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "Download",
+			Handler:       _FileService_Download_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "libs/protos/v1/fileserver/fileserver.proto",

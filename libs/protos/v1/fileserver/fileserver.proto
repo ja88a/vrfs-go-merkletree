@@ -4,16 +4,48 @@ option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/protos/v1/fileserve
 
 package fileserver;
 
-message FileUploadRequest {
-    string file_name = 1;
-    bytes chunk = 2;
+// The Remote File Storage service API definition
+service FileService {
+  // Initiate a File Upload
+  rpc Upload(stream FileUploadRequest) returns(FileUploadResponse);
+
+  // Retrieve the list of all file hashes for a given bucket / fileset storage
+  rpc BucketFileHashes(BucketFileHashesRequest) returns(BucketFileHashesResponse);
+
+  // Initiate the download of a file content, part of a given bucket
+  rpc Download(FileDownloadRequest) returns(stream FileDownloadResponse);
 }
-  
+
+// The streamed request message for uploading a file in smaller chunks
+message FileUploadRequest {
+  string bucket_id = 1;
+  string file_name = 2;
+  bytes chunk = 3;
+}
+
+// The response message of a file upload operation
 message FileUploadResponse {
   string file_name = 1;
   uint32 size = 2;
 }
-  
-service FileService {
-   rpc Upload(stream FileUploadRequest) returns(FileUploadResponse);
+ // The request message for retrieving all file hashes of a given storage bucket
+message BucketFileHashesRequest {
+  string bucket_id = 1;
+}
+
+// The response message for the list of file hashes, sorted per the lexical order of the bucket's file names
+message BucketFileHashesResponse {
+  repeated string file_hashes = 2;
+}
+
+// The request message for downloading a file
+message FileDownloadRequest {
+  string bucket_id = 1;
+  int32 file_index = 2;
+}
+
+// The streamed response message for a file download
+message FileDownloadResponse {
+  string file_name = 1;
+  bytes data = 2;
 }
