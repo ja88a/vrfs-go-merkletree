@@ -69,7 +69,7 @@ $ go run ./client -action upload -updir ./fs-playground/forupload/catyclops \
 Download locally a file from VFRS API & the File Storage services and have it verified:
 
 ```shell
-# 
+# Download & verify file command, by specifying an alternative download directory
 $ go run ./client -action download \
     -fileset fs-10B..7E21 \
     -index 5
@@ -85,11 +85,13 @@ go build ./server -o ./
 
 ### Modules Runtime Config
 
-The CLI client is configurable via command parameters it exposes.
+The CLI client is configurable via the command parameters it exposes.
 
 The VRFS & FS server configurations rely on their dedicated yml config file in [config](./config), those
 parameters can be overridden via optional `.env` files or via runtime environment variables. Refer to 
 the cleanenv solution and its integration made in the lib utils [config](./libs/utils/config/config.go).
+
+All config settings come with default values to enable an out-of-the-box experience, and an easier dev one!
 
 
 ## Development Framework
@@ -127,11 +129,11 @@ $ go work use ./moduleX
 
 Overview of the VRFS Service and its main components:
 
-![VRFS Service Overview][./doc/assets/VRFS_overview-service_v1.png]
+![VRFS Service Overview](./doc/assets/VRFS_overview-service_v1.png)
 
 Overview of the considered overall, scalable solution to be implemented: 
 
-![VRFS Solution Overview][./doc/assets/VRFS_overview-solution_v1b.png]
+![VRFS Solution Overview](./doc/assets/VRFS_overview-solution_v1b.png)
 
 
 ## Development status
