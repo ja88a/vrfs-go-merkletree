@@ -12,29 +12,31 @@ import (
 
 var (
 	action      = flag.String("action", "", "The expected client action: `ping` (default); `upload` or `download` of files in the specified `dir`")
-	dirpath     = flag.String("dir", "fs-playground/forupload/catyclops", "The local directory where to find files to upload or to download a file to, depending on the specified action")
-	fileIndex   = flag.String("file", "0", "The index number of the file to be downloaded in the specified local dir")
+	updir     	= flag.String("updir", "fs-playground/forupload/catyclops", "Upload - The local directory where to find files to upload or to download a file to, depending on the specified action")
+	downdir			= flag.String("downdir", "fs-playground/downloaded", "Download - The local directory where client files are downloaded to")
+	fileSet   	= flag.String("fileset", "fs-10f652e11f5e2f799481ed02d45a74bcf3d62dea3200ad08120bba43c242f5fb", "Download - The files set ID to request for a file download")
+	index   		= flag.String("index", "0", "Download - The index number of the file to be downloaded in the specified local dir")
 	apiEndpoint = flag.String("api", "localhost:50051", "The gRPC endpoint (host & port) for the VRFS Service API")
-	rfsEndpoint = flag.String("rfs", "localhost:9000", "The gRPC endpoint (host & port) for the Remote File Storage API")
-	upMaxNb 		= flag.String("upnb", "5", "Max number of concurrent file uploads")
-	upBatchSize = flag.String("upsize", "1048576", "Max data batch size for a file upload")
+	rfsEndpoint = flag.String("fs", "localhost:9000", "The gRPC endpoint (host & port) for the Remote File Storage service")
+	batchSize 	= flag.String("batch", "5", "Upload - Batch size, the max number of concurrent file uploads")
+	chunkSize 	= flag.String("chunk", "1048576", "Upload - Max size of data chunks transfer for each file upload")
 )
 
 func main() {
 	flag.Parse()
 
 	// CLI params minimal checks
-	batchUpNb, err := strconv.Atoi(*upMaxNb)
-	if err != nil || batchUpNb < 1 {
-		log.Fatalf("unsupported value %v for parameter 'upnb' - must be a positive integer >= 1", *upMaxNb)
+	batchSizeNb, err := strconv.Atoi(*batchSize)
+	if err != nil || batchSizeNb < 1 {
+		log.Fatalf("unsupported value %v for parameter 'batch' - must be a positive integer >= 1", *batchSize)
 	}
-	upBatchSizeNb, err := strconv.Atoi(*upBatchSize)
-	if err != nil || upBatchSizeNb < 1024 {
-		log.Fatalf("unsupported value %v for parameter 'upsize' - must be a positive integer >= 1024", *upBatchSize)
+	chunkSizeNb, err := strconv.Atoi(*chunkSize)
+	if err != nil || chunkSizeNb < 1024 {
+		log.Fatalf("unsupported value %v for parameter 'chunk' - must be a positive integer >= 1024", *chunkSize)
 	}
 
 	// Initialize the client execution context
-	clientCtx, err := srvctx.NewClientContext(*apiEndpoint, *rfsEndpoint, batchUpNb, upBatchSizeNb)
+	clientCtx, err := srvctx.NewClientContext(*apiEndpoint, *rfsEndpoint, batchSizeNb, chunkSizeNb, *downdir)
 	if err != nil {
 		log.Fatalf("Failed to establish a connection to the VRFS API\n%v", err)
 	}
@@ -42,11 +44,19 @@ func main() {
 	// Run
 	switch *action {
 	case "upload":
-		err := app.Upload(clientCtx, *dirpath)
+		err := app.Upload(clientCtx, *updir)
 		if err != nil {
-			log.Fatalf("Failed to Upload files\n%v", err)
+			log.Fatalf("Failed to store and certify files\n%v", err)
 		}
-	// case "download": fdownloader.Download(serverCtx, *dirpath, *fileIndex)
+	case "download":
+		fileIndex, err := strconv.Atoi(*index)
+		if err != nil || fileIndex < 0 {
+			log.Fatalf("Unsupported file 'index' specified %v - Must be a positive integer or 0\n%v", *index, err)
+		}
+		err = app.DownloadFile(clientCtx, *fileSet, fileIndex)
+		if err != nil {
+			log.Fatalf("File download failure\n%v", err)
+		}
 	default:
 		log.Println("VRFS Client\nNo action specified.\nHelp Command: `./vrfs-client -h`")
 		clientCtx.HandlePingVrfsReq()

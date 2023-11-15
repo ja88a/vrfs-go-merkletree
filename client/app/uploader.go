@@ -2,48 +2,23 @@ package app
 
 import (
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
-	"strings"
 
 	"path/filepath"
 
 	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	hash "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/hash"
+	fileutils "github.com/ja88a/vrfs-go-merkletree/libs/utils/files"
 )
 
 const debug = true
 
-// List all files (their path) found in the specified directory and its subdirs.
-//
-// Walks the file tree rooted at root, calling fn for each file or directory in the tree, including root.
-// The files are walked in lexical order, which makes the output deterministic
-func listDirFilePaths(rootDir string) ([]string, error) {
-	var filePaths []string
-
-	if _, err := os.Stat(rootDir); err != nil {
-		return nil, fmt.Errorf("unsupported local directory: '%v'\n%w", rootDir, err)
-	}
-
-	err := filepath.WalkDir(rootDir, func(path string, info fs.DirEntry, err error) error {
-		if !info.IsDir() {
-			filePaths = append(filePaths, path)
-		}
-		return nil
-	})
-
-	return filePaths, err
-}
-
-//
 // Initiate the verified upload protocol of all files found under the specified local directory path
-//
 func Upload(ctx *srvctx.ApiService, localDirPath string) error {
-
 	// Get the list of available local file paths
-	files, err := listDirFilePaths(localDirPath)
+	files, err := fileutils.ListDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {
 		return fmt.Errorf("no local files found in dir '%v'\n%w", localDirPath, err)
 	}
@@ -56,38 +31,56 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 		return fmt.Errorf("failure while computing file hashes for '%v'\n%w", localDirPath, err)
 	}
 
-	// Build the Merkle Tree with file hashes as leafs
-	mtConfig := &mt.Config{
-		HashFunc:           hash.DefaultHashFuncParallel,
-		NumRoutines:        0,
-		Mode:               mt.ModeTreeBuild,
-		RunInParallel:      true,
-		SortSiblingPairs:   false,
-		DisableLeafHashing: true,
-	}
+	// Build the Merkle Tree with file hashes as leaf values
+	mtConfig := mt.MerkleTreeDefaultConfig()
 	tree, err := mt.New(mtConfig, fileHashes)
 	if err != nil {
 		return fmt.Errorf("failure while computing the merkletree for files in '%v'\n%w", localDirPath, err)
 	}
 
 	// Obtain the MerkleTree root hash
-	rootHash := tree.Root
-	log.Printf("Computed fileset MerkleTree root: %x", rootHash)
+	rootHash := fmt.Sprintf("%x", tree.Root)
+	if rootHash == "" {
+		return fmt.Errorf("invalid empty MerkleTree root for fileset in '%v'", localDirPath)
+	}
+	log.Printf("Computed fileset MerkleTree root: %v", rootHash)
 
 	// Request to VRFS for a bucket into which files can be remotely stored
-	fileSetId := fmt.Sprintf("%x", rootHash)
+	fileSetId := "fs-" + rootHash
 	status, bucketId, err := ctx.HandleFileBucketReq(srvctx.UserMock, fileSetId)
 	if err != nil || status < 0 {
-		return fmt.Errorf("missing a bucket ref to upload fileset '%x'\n%w", rootHash, err)
+		return fmt.Errorf("missing a bucket ref to upload the fileset '%v'\n%w", rootHash, err)
 	}
 	log.Printf("Bucket ID '%v' (%d) available for uploading files", bucketId, status)
 
-	// Upload the files to the Files Server
+	// Upload the local files to the Remote Files Server
 	err = uploadFiles(ctx, bucketId, files)
+	if err != nil || status < 0 {
+		return fmt.Errorf("failed to upload all local files to bucket '%v'\n%w", bucketId, err)
+	}
 
-	// Confirm to VRFS that the files upload is done
+	// Confirm from VRFS that the files have been correctly uploaded, by comparing the file hashes' MerkleTree roots
+	filesMatch, err := confirmFilesUploadIsDoneAndCorrect(ctx, fileSetId, rootHash)
+	if err != nil {
+		return fmt.Errorf("failed to verify the remotely stored files for fileset '%v' with MT root %v\n%w", fileSetId, rootHash, err)
+	}
+	if !filesMatch {
+		return fmt.Errorf("remotely stored files could not be verified: failure or mismatch - bucket '%v'\n%w", bucketId, err)
+	}
 
-	return err
+	// Delete the client files since now stored remotely & verified
+	removeLocalFiles := false
+	if filesMatch && removeLocalFiles {
+		log.Println("Removing local files")
+		for _, filePath := range files {
+			err := os.RemoveAll(filePath)
+			if err != nil {
+				return fmt.Errorf("deletion of local files failed on file '%v'\n%w", filePath, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Compute the hash for each file, read their content from the provided file path.
@@ -97,8 +90,7 @@ func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 	fileCounter := 0
 	var fileHashes []mt.IDataBlock
 
-	filesPrefix := extractCommonPrefix(filePaths)
-
+	// Loop over the dir files
 	for _, filePath := range filePaths {
 		fileContent, err := os.ReadFile(filePath)
 		if err != nil {
@@ -106,14 +98,16 @@ func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 		}
 
 		// Append the unique file name in the fileset to enforce the computed hash unicity
-		fileName := strings.TrimPrefix(filePath, filesPrefix)
+		fileName := filepath.Base(filePath)
 		fileContentName := append(fileContent, fileName...)
 
+		// Hash computation
 		fileHash, err := hash.DefaultHashFuncParallel(fileContentName)
 		if err != nil {
 			return fileHashes, fmt.Errorf("Upload process failed on computing hash for file '%v'\nError:\n%v", filePath, err)
 		}
 
+		// Convert
 		block := &mt.DataBlock{
 			Data: fileHash,
 		}
@@ -129,51 +123,40 @@ func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 	return fileHashes, nil
 }
 
+// Batch upload of local files to the Remote FS store
 func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []string) error {
-
-	// filesPrefix := extractCommonPrefix(localFilePaths)
 	upService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize)
 
+	// Loop over the local files
+	// TODO handle the parallel uploads of files
 	for _, filePath := range localFilePaths {
-		// filePath := localFilePaths[0]
 		if err := upService.SendFile(bucketId, filePath); err != nil {
-			return fmt.Errorf("failed to upload file `%v`\n%w", filePath, err)
+			return fmt.Errorf("failed to batch upload the file `%v`\n%w", filePath, err)
 		}
 	}
 
 	return nil
 }
 
-// Utility method for extracting the longest common prefix among a set of provided strings
-func extractCommonPrefix(strs []string) string {
-	lenStrs := len(strs)
-	if lenStrs == 0 {
-		return ""
+// Confirm from the VRFS API that all local files have been properly uploaded to the File Storage server
+//
+// Provide the locally generated MerkleTree root so that the VRFS API compares it with its own generated
+// MerkleTree root hash for the remotely stored files set.
+func confirmFilesUploadIsDoneAndCorrect(ctx *srvctx.ApiService, fileSetId string, rootHash string) (bool, error) {
+	// Notify VRFS that files upload is done
+	status, message, err := ctx.HandleUploadDoneReq(srvctx.UserMock, fileSetId, rootHash)
+	if err != nil {
+		return false, fmt.Errorf("failed to confirm that remotely stored files for fileset '%v' match with local ones (root: %v)\n%w", fileSetId, rootHash, err)
 	}
 
-	firstString := strs[0]
-	lenFirstString := len(firstString)
-
-	commonPrefix := ""
-	for i := 0; i < lenFirstString; i++ {
-		firstStringChar := string(firstString[i])
-		match := true
-		for j := 1; j < lenStrs; j++ {
-			if (len(strs[j]) - 1) < i {
-				match = false
-				break
-			}
-			if string(strs[j][i]) != firstStringChar {
-				match = false
-				break
-			}
-		}
-		if match {
-			commonPrefix += firstStringChar
-		} else {
-			break
-		}
+	// Check that the filesets' MerkleTree roots are confirmed to match
+	if status == 500 {
+		return false, fmt.Errorf("VRFS failed at confirming that remotely stored files for fileset '%v' match with local ones (root: %x)\nStatus %d : %v", fileSetId, rootHash, status, message)
+	} else if status == 419 {
+		return false, fmt.Errorf("remotely stored files for fileset '%v' do not match with local ones (root: %x)\nStatus %d : %v", fileSetId, string(rootHash), status, message)
+	} else if status == 200 {
+		log.Printf("Remote storage of files set '%v' verified as untampered - Status %d : %v", fileSetId, status, message)
+		return true, nil
 	}
-
-	return commonPrefix
+	return false, fmt.Errorf("unsupported status return by VRFS while checking for the remotely stored files consistency for fileset '%v' (%x)\nStatus %d : %v", fileSetId, rootHash, status, message)
 }

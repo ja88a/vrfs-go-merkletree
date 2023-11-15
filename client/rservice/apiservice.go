@@ -14,7 +14,7 @@ import (
 
 const UserMock = "umock"
 
-// this type contains state of the server
+// Client execution context to interact with its API services
 type ApiService struct {
 	// client to the VRFS GRPC service
 	VrfsClient pbvrfs.VerifiableRemoteFileStorageClient
@@ -33,10 +33,13 @@ type ApiService struct {
 
 	// logger to replace global logging
 	//log
+
+	// Path of the local root repository where files are downloaded
+	LocalFileDownloadRepo string
 }
 
-// Constructor for the client's remote service / context
-func NewClientContext(vrfsEndpoint string, nfsEndpoint string, upMaxConcurrent int, upBatchSize int) (*ApiService, error) {
+// Init the client's remote service / context
+func NewClientContext(vrfsEndpoint string, nfsEndpoint string, upMaxConcurrent int, upBatchSize int, localDownloadRepo string) (*ApiService, error) {
 	// VRFS server connection
 	vrfsConn, err := grpc.Dial(vrfsEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -47,34 +50,62 @@ func NewClientContext(vrfsEndpoint string, nfsEndpoint string, upMaxConcurrent i
 		VrfsClient:  pbvrfs.NewVerifiableRemoteFileStorageClient(vrfsConn),
 		vrfsTimeout: time.Second,
 
-		RfsEndpoint:         nfsEndpoint,
-		UploadMaxConcurrent: upMaxConcurrent,
-		UploadMaxBatchSize:  upBatchSize,
+		RfsEndpoint:           nfsEndpoint,
+		UploadMaxConcurrent:   upMaxConcurrent,
+		UploadMaxBatchSize:    upBatchSize,
+		LocalFileDownloadRepo: localDownloadRepo,
 	}, nil
 }
 
-// Handle the request to the VRFS API for a file bucket to upload files to the file storage server
+// Handle the request for a file storage bucket from the VRFS API, to upload files to the file storage service
 func (clientCtx *ApiService) HandleFileBucketReq(userId string, fileSetId string) (int32, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	resp, err := clientCtx.VrfsClient.UploadBucket(ctx, &pbvrfs.UploadBucketRequest{UserId: userId, FilesetId: fileSetId})
 	if err != nil {
-		return -1, "", fmt.Errorf("Failed to request File Bucket for '%v'\n%w", fileSetId, err)
+		return -1, "", fmt.Errorf("failed to request file bucket for '%v'\n%w", fileSetId, err)
 	}
-	//return -1, "", fmt.Errorf("Failed to request File Bucket for '%v'\n%v\n%w", fileSetId, resp, fmt.Errorf("root cause"))
+
 	return resp.Status, resp.BucketId, err
 }
 
+// Handle the request to VRFS for confirming the fileset has been correctly uploaded & stored
+func (clientCtx *ApiService) HandleUploadDoneReq(userId string, fileSetId string, mtRootHash string) (int32, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	resp, err := clientCtx.VrfsClient.UploadDone(ctx, &pbvrfs.UploadDoneRequest{UserId: userId, FilesetId: fileSetId, FilesetMtRoot: mtRootHash})
+	if err != nil {
+		return -1, "", fmt.Errorf("failed to request for files upload correctness - fileset: '%v'\n%w", fileSetId, err)
+	}
+
+	return resp.Status, resp.Message, err
+}
+
+// Handle the request to VRFS for retrieving the info to download a file and check/proove it is untampered
+func (clientCtx *ApiService) HandleDownloadFileInfoReq(userId string, fileSetId string, fileIndex int) (string, []string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	resp, err := clientCtx.VrfsClient.DownloadFileInfo(ctx, &pbvrfs.DownloadFileInfoRequest{UserId: userId, FilesetId: fileSetId, FileIndex: int32(fileIndex)})
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to retrieve download info for file #%d in fileset: '%v'\n%w", fileIndex, fileSetId, err)
+	}
+
+	return resp.BucketId, resp.MtProofs, err
+}
+
+// Handle the VRFS API ping request, to check for its availability
 func (clientCtx *ApiService) HandlePingVrfsReq() {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := clientCtx.VrfsClient.SayHello(ctx, &pbvrfs.HelloRequest{Name: "VRFS User"})
+	resp, err := clientCtx.VrfsClient.SayHello(ctx, &pbvrfs.HelloRequest{Name: "VRFS User"})
 	if err != nil {
 		log.Fatalf("VFRS service ping req fails\n%v", err)
 	}
 
-	log.Printf("Greetings, %s!", r.GetMessage())
+	log.Printf("Greetings, %s!", resp.GetMessage())
 }

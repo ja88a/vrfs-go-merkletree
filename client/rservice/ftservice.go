@@ -2,34 +2,44 @@ package rservice
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
+	"github.com/ja88a/vrfs-go-merkletree/libs/utils/file"
 )
 
+// File transfer service context info
 type FTService struct {
 	addr      string
 	batchSize int
 	client    pb.FileServiceClient
+	debug			bool
 }
 
+// Init the file transfer service context info
 func NewFileTransfer(addr string, batchSize int) *FTService {
 	return &FTService{
 		addr:      addr,
 		batchSize: batchSize,
+		debug: 		 false,
 	}
 }
 
+// Local file data transfer protocol, in chunks, to the specified file storage's bucket
 func (s *FTService) SendFile(bucketId string, filePath string) error {
-	log.Println(s.addr, filePath)
+	if s.debug {
+		log.Printf("Sending file '%v' to '%v'", filePath, s.addr)
+	}
 	conn, err := grpc.Dial(s.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
@@ -58,7 +68,7 @@ func (s *FTService) SendFile(bucketId string, filePath string) error {
 
 	select {
 	case killSignal := <-interrupt:
-		log.Println("Got ", killSignal)
+		log.Printf("Kill signal received (%v)\n", killSignal)
 		cancel()
 	case <-ctx.Done():
 	}
@@ -94,7 +104,9 @@ func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 		if err := stream.Send(&pb.FileUploadRequest{BucketId: bucketId, FileName: fileName, Chunk: chunk}); err != nil {
 			return err
 		}
-		log.Printf("Sent - batch #%v - size - %v\n", batchNumber, len(chunk))
+		if s.debug {
+			log.Printf("Sent chunk #%v of size %v\n", batchNumber, len(chunk))
+		}
 		batchNumber += 1
 	}
 
@@ -102,8 +114,67 @@ func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 	if err != nil {
 		return err
 	}
-	log.Printf("Sent - %v bytes - %s\n", res.GetSize(), res.GetFileName())
+	// if s.debug {}
+	log.Printf("Sent %v bytes for file %s\n", res.GetSize(), res.GetFileName())
 
 	cancel()
 	return nil
+}
+
+// Handle a file download request towards the FS server, based on a bucket ID (previously loaded) and a file index
+// Consider the file index towards a lexically sorted list order of the target files directory
+func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*file.File, error) {
+	if s.debug {
+		log.Printf("Download file #%d from bucket '%v'", fileIndex, bucketId)
+	}
+	conn, err := grpc.Dial(s.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	s.client = pb.NewFileServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	
+	resp, err := s.client.Download(ctx, &pb.FileDownloadRequest{BucketId: bucketId, FileIndex: int32(fileIndex)})
+	if (err != nil) {
+		return nil, fmt.Errorf("failed to download file #%d from bucket '%v'\n%w", fileIndex, bucketId, err)
+	}
+	
+	md, err := resp.Header()
+	if err != nil {
+		return nil, fmt.Errorf("invalid file download response header for file #%d from bucket '%v'\n%w", fileIndex, bucketId, err)
+	}
+
+	pReader, pWriter := io.Pipe()
+	rFile := file.NewFromMetadata(md, pReader)
+	go copyFromResponse(pWriter, resp)
+
+	return rFile, nil
+}
+
+func copyFromResponse(w *io.PipeWriter, res pb.FileService_DownloadClient) {
+	message := new(pb.FileDownloadResponse)
+	var err error
+	for {
+		 err = res.RecvMsg(message)
+		 if err == io.EOF {
+				_ = w.Close()
+				break
+		 }
+		 if err != nil {
+				_ = w.CloseWithError(err)
+				break
+		 }
+		 if len(message.GetChunk()) > 0 {
+				_, err = w.Write(message.Chunk)
+				if err != nil {
+					 _ = res.CloseSend()
+					 break
+				}
+		 }
+		 message.Chunk = message.Chunk[:0]
+	}
 }
