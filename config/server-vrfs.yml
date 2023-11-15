@@ -7,3 +7,6 @@ grpc:
 
 logger:
   log_level: 'debug'
+
+fsapi:
+  endpoint: 'localhost:9000'
