@@ -1,0 +1,9 @@
+app:
+  name: 'verified-remote-file-storage'
+  version: '1.0.0'
+
+grpc:
+  port: ":50051"
+
+logger:
+  log_level: 'debug'
