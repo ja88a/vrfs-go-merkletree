@@ -11,12 +11,41 @@ This is the mono repository for the Go-based implementation of 2 backend service
 The gRPC protocol is used for optimal client-server and server-server communications.
 
 
-### Protocol
+### Protocol Overview
+
+The overal implemented protocol for uploading or downloading local files to the remote file storage service and always have the files verified based on the generation of a Merkle Tree root and proofs for the checking the leaf values, the file hashes here:
+
+![Implemented Protocol Overview](./doc/assets/VRFS_overview-protocol_v1.png)
+
+* The VRFS Service handles the creds/access to the [external] NFS service
+* Files are directly uploaded to & downloaded from the NFS service
+* VRFS retrieves the file hashes from the NFS server, for building its Merkle Tree
+
+This protocol results in: 
+* 6 steps to remotely store the files - 1 client command: 1 API & n file uploads requests + 1 VRFS-FS API request
+* 3 steps to retrieve & verify a file - 1 client command: 1 API & 1 file download requests
+
+3 main components have been implemented:
+1. The VRFS API Service - The core component of this protocol, exposing a gRPC API
+2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually, or get the list of stored files' hashes
+3. A CLI client to execute the 2 main upload and download operations, along with MerkleProof-based file hash verifications
 
 
 ## Instructions
 
-### Running client commands
+### Running the Servers
+
+A Docker Compose setup will enhance the below manual mode for running the 2 server modules:
+
+```shell
+# Run locally the File Storage server
+$ go run ./fileserver
+
+# Run locally the VRFS server
+$ go run ./server
+```
+
+### Running the CLI client
 
 List the available client CLI parameters:
 
@@ -24,17 +53,44 @@ List the available client CLI parameters:
 $ go run ./client -h
 ```
 
-Upload all files of a local directory to the remote file storage server:
+File Upload & Verify protocol: Upload all files of a local directory to the remote file storage server:
 
 ```shell
 # With default service endpoints
-$ go run ./client -action upload -dir ./fs-playground/forupload/catyclops
+$ go run ./client -action upload -updir ./fs-playground/forupload/catyclops
 
-# Or by specifying the service endpoints
-$ go run ./client -action upload -dir ./fs-playground/forupload/catyclops \
+# Or by specifying the service endpoints and a max chunk size
+$ go run ./client -action upload -updir ./fs-playground/forupload/catyclops \
     -api vrfs-server:50051 \
-    -rfs nfs-server:9000
+    -fs nfs-server:9000 \
+    -chunk 1024
 ```
+
+Download locally a file from VFRS API & the File Storage services and have it verified:
+
+```shell
+# 
+$ go run ./client -action download \
+    -fileset fs-10B..7E21 \
+    -index 5
+    -downdir ./fs-playground/downloaded
+```
+
+### Building Executable Go Modules
+
+```
+go build ./client -o ./dist/vrfs-client
+go build ./server -o ./
+```
+
+### Modules Runtime Config
+
+The CLI client is configurable via command parameters it exposes.
+
+The VRFS & FS server configurations rely on their dedicated yml config file in [config](./config), those
+parameters can be overridden via optional `.env` files or via runtime environment variables. Refer to 
+the cleanenv solution and its integration made in the lib utils [config](./libs/utils/config/config.go).
+
 
 ## Development Framework
 
@@ -59,6 +115,7 @@ A Go workspace is used for handling the different modules part of this monorepo.
 Refer to the workspace config file: [`go.work`](./go.work).
 
 Adding a new module to the workspace:
+
 ```
 $ mkdir moduleX
 $moduleX/ go mod init github.com/ja88a/vrfs-go-merkletree/moduleX
@@ -68,9 +125,30 @@ $ go work use ./moduleX
 
 ## Architecture
 
+Overview of the VRFS Service and its main components:
+
+![VRFS Service Overview][./doc/assets/VRFS_overview-service_v1.png]
+
+Overview of the considered overall, scalable solution to be implemented: 
+
+![VRFS Solution Overview][./doc/assets/VRFS_overview-solution_v1b.png]
 
 
-## Production Readiness - Status
+## Development status
+
+The depicted files' verification protocol on client side has not yet been finalized.
+The remaining key challenge is about the efficient serialization of the MerkleTree Proofs to be communicated
+to the clients on every file download verification, as well as for their DB storage.
+
+A persistence layer for the VRFS Service is required to be implemented, via a DB ORM integration
+and a moreover distributed/embedded memory cache solution, such as Redis-like solutions.
+
+The computation models and their settings for the backbone Merkle Tree reference is to be 
+further refined and benchmarked, per the integration use case(s) and corresponding optimization 
+requirements for ad-hoc computation, storage and transport .
+
+
+## Solution Readiness - Status
 
 ### Missing for Production
 
@@ -90,7 +168,7 @@ External services acting as load balancers and an API Gateway should be integrat
 
 #### Logs Reporting
 
-The services' JSON logs should be reported to a remote log watcher to review them, monitor the service and/or automate runtime alerts triggering.
+Actual services' JSON logs should be reported to a remote log watcher to review them, monitor the service and/or automate runtime alerts triggering.
 
 Example of available 3rd party solutions: Sentry.io - Refer to [sentry-go](https://github.com/getsentry/sentry-go).
 
@@ -117,3 +195,17 @@ Refer to actual `grpc.WithTransportCredentials`.
 A basic versioning mechanism is actually implemented for managing the Protobuf-based gRPC stubs integrated by the client and the servers.
 
 The Docker images are tagged using the semver CLI tool.
+
+The services actually handle a version number through their configuration file.
+
+#### Automated Tests
+
+Automated unit and integration testing have not been addressed yet.
+
+E2E tests & a continuous integration / deployment flows should be implemented.
+
+#### CLI Client
+
+A Cordoba-like integration should be considered if the CLI client is given a priority.
+
+A logger might also have to be integrated.
