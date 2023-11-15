@@ -2,6 +2,10 @@ module github.com/ja88a/vrfs-go-merkletree/fileserver
 
 go 1.21.4
 
+replace github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0 => ../libs/utils
+
+replace github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0 => ../libs/protos
+
 require (
 	github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0
 	github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0
