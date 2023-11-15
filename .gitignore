@@ -22,3 +22,7 @@
 
 # Files and Dirs prefixed with an underscore
 _*
+
+# Files in the FS playground area
+fs-playground/client_files
+fs-playground/downloaded/*
