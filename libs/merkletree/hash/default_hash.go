@@ -44,3 +44,5 @@ func DefaultHashFuncParallel(data []byte) ([]byte, error) {
 	digest.Write(data)
 	return digest.Sum(make([]byte, 0, digest.Size())), nil
 }
+
+
