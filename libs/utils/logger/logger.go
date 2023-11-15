@@ -58,20 +58,16 @@ func (l *Logger) Debug(message interface{}, args ...interface{}) {
 
 // Info -.
 func (l *Logger) Info(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.msg("info", message, args...)
 }
 
 // Warn -.
 func (l *Logger) Warn(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.msg("warn", message, args...)
 }
 
 // Error -.
 func (l *Logger) Error(message interface{}, args ...interface{}) {
-	if l.logger.GetLevel() == zerolog.DebugLevel {
-		l.Debug(message, args...)
-	}
-
 	l.msg("error", message, args...)
 }
 
@@ -82,21 +78,50 @@ func (l *Logger) Fatal(message interface{}, args ...interface{}) {
 	os.Exit(1)
 }
 
-func (l *Logger) log(message string, args ...interface{}) {
-	if len(args) == 0 {
-		l.logger.Info().Msg(message)
-	} else {
-		l.logger.Info().Msgf(message, args...)
-	}
-}
-
 func (l *Logger) msg(level string, message interface{}, args ...interface{}) {
 	switch msg := message.(type) {
 	case error:
-		l.log(msg.Error(), args...)
+		l.log(level, msg.Error(), args...)
 	case string:
-		l.log(msg, args...)
+		l.log(level, msg, args...)
 	default:
-		l.log(fmt.Sprintf("%s message %v has unknown type %v", level, message, msg), args...)
+		l.log("error", fmt.Sprintf("%s message %v has unknown type %v", level, message, msg), args...)
+	}
+}
+
+func (l *Logger) log(level string, message string, args ...interface{}) {
+	switch level {
+	case "debug":
+		if len(args) == 0 {
+			l.logger.Debug().Msg(message)
+		} else {
+			l.logger.Debug().Msgf(message, args...)
+		}
+	case "info":
+		if len(args) == 0 {
+			l.logger.Info().Msg(message)
+		} else {
+			l.logger.Info().Msgf(message, args...)
+		}
+	case "warn":
+		if len(args) == 0 {
+			l.logger.Warn().Msg(message)
+		} else {
+			l.logger.Warn().Msgf(message, args...)
+		}
+	case "error":
+		if len(args) == 0 {
+			l.logger.Error().Msg(message)
+		} else {
+			l.logger.Error().Msgf(message, args...)
+		}
+	case "fatal":
+		if len(args) == 0 {
+			l.logger.Fatal().Msg(message)
+		} else {
+			l.logger.Fatal().Msgf(message, args...)
+		}
+	default:
+		l.logger.Error().Msg(fmt.Sprintf("Unsupporter logging level `%v` for message `%v`", level, message))
 	}
 }
