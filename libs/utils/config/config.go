@@ -14,6 +14,7 @@ type (
 		GRPC         `yaml:"grpc"`
 		FilesStorage `yaml:"files_storage"`
 		Log          `yaml:"logger"`
+		FSAPI				 `yaml:"fsapi"`
 	}
 
 	// App -.
@@ -32,7 +33,12 @@ type (
 	}
 	// Log -.
 	Log struct {
-		Level string `env-required:"true" yaml:"log_level"   env:"LOG_LEVEL"`
+		Level string `env-required:"true" yaml:"log_level" env:"LOG_LEVEL"`
+	}
+	
+	// FSAPI -.
+	FSAPI struct {
+		Endpoint string `yaml:"endpoint" env:"FSAPI_ENDPOINT"`
 	}
 )
 

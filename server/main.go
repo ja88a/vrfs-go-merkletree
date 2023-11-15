@@ -17,5 +17,8 @@ func main() {
 	log.Println("VRFS API config: ", cfg)
 	
 	// Run the server
-	app.Run(cfg)
+	err = app.Run(cfg)
+	if err != nil {
+		log.Fatalf("Failed at running VRFS API service\n%v", err)
+	}
 }
