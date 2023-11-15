@@ -2,50 +2,53 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
-	"time"
+	"strconv"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
-	up "github.com/ja88a/vrfs-go-merkletree/client/upload"
-)
-
-const (
-	defaultName = "VFRS"
+	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
+	"github.com/ja88a/vrfs-go-merkletree/client/app"
 )
 
 var (
-	action = flag.String("action", "upload", "The expected client action: upload or download of files in the specified `dir`")
-	dirpath = flag.String("dir", "fs-playground/forupload/catyclops", "The local directory where to find files to upload or to download a file to")
-	vrfs = flag.String("vrfs", "localhost:50051", "The host & port of the VRFS Service API")
-	nfs = flag.String("nfs", "localhost:9000", "The host & port of the Network Files Server")
-	name = flag.String("name", defaultName, "Name to greet")
+	action      = flag.String("action", "", "The expected client action: `ping` (default); `upload` or `download` of files in the specified `dir`")
+	dirpath     = flag.String("dir", "fs-playground/forupload/catyclops", "The local directory where to find files to upload or to download a file to, depending on the specified action")
+	fileIndex   = flag.String("file", "0", "The index number of the file to be downloaded in the specified local dir")
+	apiEndpoint = flag.String("api", "localhost:50051", "The gRPC endpoint (host & port) for the VRFS Service API")
+	rfsEndpoint = flag.String("rfs", "localhost:9000", "The gRPC endpoint (host & port) for the Remote File Storage API")
+	upMaxNb 		= flag.String("upnb", "5", "Max number of concurrent file uploads")
+	upBatchSize = flag.String("upsize", "1048576", "Max data batch size for a file upload")
 )
 
 func main() {
 	flag.Parse()
 
-	up.Upload(*dirpath)
-
-	// Set up a connection to the server.
-	conn, err := grpc.Dial(*vrfs, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+	// CLI params minimal checks
+	batchUpNb, err := strconv.Atoi(*upMaxNb)
+	if err != nil || batchUpNb < 1 {
+		log.Fatalf("unsupported value %v for parameter 'upnb' - must be a positive integer >= 1", *upMaxNb)
 	}
-	defer conn.Close()
-	
-	c := pb.NewVerifiableRemoteFileStorageClient(conn)
-
-	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: *name})
-	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+	upBatchSizeNb, err := strconv.Atoi(*upBatchSize)
+	if err != nil || upBatchSizeNb < 1024 {
+		log.Fatalf("unsupported value %v for parameter 'upsize' - must be a positive integer >= 1024", *upBatchSize)
 	}
-	log.Printf("Greeting: %s", r.GetMessage())
+
+	// Initialize the client execution context
+	clientCtx, err := srvctx.NewClientContext(*apiEndpoint, *rfsEndpoint, batchUpNb, upBatchSizeNb)
+	if err != nil {
+		log.Fatalf("Failed to establish a connection to the VRFS API\n%v", err)
+	}
+
+	// Run
+	switch *action {
+	case "upload":
+		err := app.Upload(clientCtx, *dirpath)
+		if err != nil {
+			log.Fatalf("Failed to Upload files\n%v", err)
+		}
+	// case "download": fdownloader.Download(serverCtx, *dirpath, *fileIndex)
+	default:
+		log.Println("VRFS Client\nNo action specified.\nHelp Command: `./vrfs-client -h`")
+		clientCtx.HandlePingVrfsReq()
+	}
 }

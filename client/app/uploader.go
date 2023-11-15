@@ -1,7 +1,6 @@
-package upload
+package app
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -10,6 +9,7 @@ import (
 
 	"path/filepath"
 
+	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	hash "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/hash"
 )
@@ -20,14 +20,14 @@ const debug = true
 //
 // Walks the file tree rooted at root, calling fn for each file or directory in the tree, including root.
 // The files are walked in lexical order, which makes the output deterministic
-func GetListDirFiles(root string) ([]string, error) {
+func listDirFilePaths(rootDir string) ([]string, error) {
 	var filePaths []string
 
-	if _, err := os.Stat(root); errors.Is(err, os.ErrNotExist) {
-		log.Fatalf("Unknown Directory: '%v'", root)
+	if _, err := os.Stat(rootDir); err != nil {
+		return nil, fmt.Errorf("unsupported local directory: '%v'\n%w", rootDir, err)
 	}
 
-	err := filepath.WalkDir(root, func(path string, info fs.DirEntry, err error) error {
+	err := filepath.WalkDir(rootDir, func(path string, info fs.DirEntry, err error) error {
 		if !info.IsDir() {
 			filePaths = append(filePaths, path)
 		}
@@ -37,13 +37,15 @@ func GetListDirFiles(root string) ([]string, error) {
 	return filePaths, err
 }
 
+//
 // Initiate the verified upload protocol of all files found under the specified local directory path
-func Upload(localDirPath string) {
+//
+func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 
 	// Get the list of available local file paths
-	files, err := GetListDirFiles(localDirPath)
+	files, err := listDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {
-		log.Fatalf("No local files found in dir '%v'\n%v", localDirPath, err)
+		return fmt.Errorf("no local files found in dir '%v'\n%w", localDirPath, err)
 	}
 
 	log.Printf("Upload - Found %v files in local dir '%v'", len(files), localDirPath)
@@ -51,44 +53,51 @@ func Upload(localDirPath string) {
 	// Compute the file hashes, converted to MT data blocks
 	fileHashes, err := computeFileHashes(files)
 	if err != nil {
-		log.Fatalf("Failure while computing File Hashes for '%v'\n%v", localDirPath, err)
+		return fmt.Errorf("failure while computing file hashes for '%v'\n%w", localDirPath, err)
 	}
 
 	// Build the Merkle Tree with file hashes as leafs
 	mtConfig := &mt.Config{
-		HashFunc: hash.DefaultHashFuncParallel,
-		NumRoutines: 0,
-		Mode: mt.ModeTreeBuild,
-		RunInParallel: true,
-		SortSiblingPairs: false,
+		HashFunc:           hash.DefaultHashFuncParallel,
+		NumRoutines:        0,
+		Mode:               mt.ModeTreeBuild,
+		RunInParallel:      true,
+		SortSiblingPairs:   false,
 		DisableLeafHashing: true,
 	}
 	tree, err := mt.New(mtConfig, fileHashes)
 	if err != nil {
-		log.Fatalf("Failure while computing the MerkleTree for files in '%v'\n%v", localDirPath, err)
+		return fmt.Errorf("failure while computing the merkletree for files in '%v'\n%w", localDirPath, err)
 	}
 
 	// Obtain the MerkleTree root hash
 	rootHash := tree.Root
 	log.Printf("Computed fileset MerkleTree root: %x", rootHash)
 
-	// Request to VRFS for a bucket into which files can be stored
+	// Request to VRFS for a bucket into which files can be remotely stored
+	fileSetId := fmt.Sprintf("%x", rootHash)
+	status, bucketId, err := ctx.HandleFileBucketReq(srvctx.UserMock, fileSetId)
+	if err != nil || status < 0 {
+		return fmt.Errorf("missing a bucket ref to upload fileset '%x'\n%w", rootHash, err)
+	}
+	log.Printf("Bucket ID '%v' (%d) available for uploading files", bucketId, status)
 
 	// Upload the files to the Files Server
+	err = uploadFiles(ctx, bucketId, files)
 
 	// Confirm to VRFS that the files upload is done
 
+	return err
 }
 
-// Compute the hash for each file, read their content from the provided file path
-// File hashes are stored as a merkle tree's leaf/block
-// 
-// TODO Multi-threading: compute files' hash in parallel instead of sequentially
+// Compute the hash for each file, read their content from the provided file path.
+//
+// File hashes are stored as a merkle tree's leaf/block.
 func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 	fileCounter := 0
 	var fileHashes []mt.IDataBlock
 
-	filePrefix := longestCommonPrefix(filePaths)
+	filesPrefix := extractCommonPrefix(filePaths)
 
 	for _, filePath := range filePaths {
 		fileContent, err := os.ReadFile(filePath)
@@ -96,10 +105,11 @@ func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 			return fileHashes, fmt.Errorf("Upload process failed on reading content of file '%v'\nError:\n%v", filePath, err)
 		}
 
-		fileName := strings.TrimPrefix(filePath, filePrefix)
-		uniqueFile := append(fileContent, fileName...)
+		// Append the unique file name in the fileset to enforce the computed hash unicity
+		fileName := strings.TrimPrefix(filePath, filesPrefix)
+		fileContentName := append(fileContent, fileName...)
 
-		fileHash, err := hash.DefaultHashFuncParallel(uniqueFile)
+		fileHash, err := hash.DefaultHashFuncParallel(fileContentName)
 		if err != nil {
 			return fileHashes, fmt.Errorf("Upload process failed on computing hash for file '%v'\nError:\n%v", filePath, err)
 		}
@@ -119,7 +129,23 @@ func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 	return fileHashes, nil
 }
 
-func longestCommonPrefix(strs []string) string {
+func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []string) error {
+
+	// filesPrefix := extractCommonPrefix(localFilePaths)
+	upService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize)
+
+	for _, filePath := range localFilePaths {
+		// filePath := localFilePaths[0]
+		if err := upService.SendFile(bucketId, filePath); err != nil {
+			return fmt.Errorf("failed to upload file `%v`\n%w", filePath, err)
+		}
+	}
+
+	return nil
+}
+
+// Utility method for extracting the longest common prefix among a set of provided strings
+func extractCommonPrefix(strs []string) string {
 	lenStrs := len(strs)
 	if lenStrs == 0 {
 		return ""
