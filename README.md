@@ -4,11 +4,12 @@
 
 ### General
 
-The Verifiable Remote File Storage service aims at checking the consistency of uploaded then downloaded files, based on files' secp256k hash and their MerkleTree proofs.
+The Verifiable Remote File Storage service aims at checking the consistency of uploaded then downloaded files, based on file hashes and their MerkleTree proofs.
 
-This is the mono repository for the Go-based implementation of the Backend services and a Client.
+This is the mono repository for the Go-based implementation of 2 backend services and 1 CLI client.
 
-The gRPC protocol is used for optimal client-server interactions.
+The gRPC protocol is used for optimal client-server and server-server communications.
+
 
 ### Protocol
 
@@ -89,13 +90,13 @@ External services acting as load balancers and an API Gateway should be integrat
 
 #### Logs Reporting
 
-The service JSON logs should be reported to a remote log watcher to review them, monitor the service and/or automate runtime alerts triggering.
+The services' JSON logs should be reported to a remote log watcher to review them, monitor the service and/or automate runtime alerts triggering.
 
 Example of available 3rd party solutions: Sentry.io - Refer to [sentry-go](https://github.com/getsentry/sentry-go).
 
 #### Services Monitoring
 
-A monitoring infra is to be created and servers should report usage & performance statistics.
+A monitoring infra is to be added and servers should report their usage & performance statistics.
 
 The integration of a Prometheus-like time serie events database should be considered so that each servers report their stats.
 
