@@ -1,6 +1,10 @@
-module github.com/ja88a/vrfs-go-merkletree/libs/logger
+module github.com/ja88a/vrfs-go-merkletree/libs/utils
 
 go 1.21
+
+//replace github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0 => ../merkletree
+
+require github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0
 
 require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
