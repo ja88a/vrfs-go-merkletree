@@ -22,7 +22,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VerifiableRemoteFileStorageClient interface {
-	// Sends a greeting
+	// Request for a file bucket on the remote files storage server
+	UploadBucket(ctx context.Context, in *UploadBucketRequest, opts ...grpc.CallOption) (*UploadBucketResponse, error)
+	// Confirm that files have been remotely stored and are consistent with the original/local file set
+	UploadDone(ctx context.Context, in *UploadDoneRequest, opts ...grpc.CallOption) (*UploadDoneResponse, error)
+	// Get the download info to retrieve a file from the files storage server as well as
+	// the MerkleTree proofs to confirm it has not been tampered
+	DownloadFileInfo(ctx context.Context, in *DownloadFileInfoRequest, opts ...grpc.CallOption) (*DownloadFileInfoResponse, error)
+	// Sends a greeting / Service ping request
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 }
 
@@ -32,6 +39,33 @@ type verifiableRemoteFileStorageClient struct {
 
 func NewVerifiableRemoteFileStorageClient(cc grpc.ClientConnInterface) VerifiableRemoteFileStorageClient {
 	return &verifiableRemoteFileStorageClient{cc}
+}
+
+func (c *verifiableRemoteFileStorageClient) UploadBucket(ctx context.Context, in *UploadBucketRequest, opts ...grpc.CallOption) (*UploadBucketResponse, error) {
+	out := new(UploadBucketResponse)
+	err := c.cc.Invoke(ctx, "/vrfs.VerifiableRemoteFileStorage/UploadBucket", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *verifiableRemoteFileStorageClient) UploadDone(ctx context.Context, in *UploadDoneRequest, opts ...grpc.CallOption) (*UploadDoneResponse, error) {
+	out := new(UploadDoneResponse)
+	err := c.cc.Invoke(ctx, "/vrfs.VerifiableRemoteFileStorage/UploadDone", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *verifiableRemoteFileStorageClient) DownloadFileInfo(ctx context.Context, in *DownloadFileInfoRequest, opts ...grpc.CallOption) (*DownloadFileInfoResponse, error) {
+	out := new(DownloadFileInfoResponse)
+	err := c.cc.Invoke(ctx, "/vrfs.VerifiableRemoteFileStorage/DownloadFileInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *verifiableRemoteFileStorageClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
@@ -47,7 +81,14 @@ func (c *verifiableRemoteFileStorageClient) SayHello(ctx context.Context, in *He
 // All implementations must embed UnimplementedVerifiableRemoteFileStorageServer
 // for forward compatibility
 type VerifiableRemoteFileStorageServer interface {
-	// Sends a greeting
+	// Request for a file bucket on the remote files storage server
+	UploadBucket(context.Context, *UploadBucketRequest) (*UploadBucketResponse, error)
+	// Confirm that files have been remotely stored and are consistent with the original/local file set
+	UploadDone(context.Context, *UploadDoneRequest) (*UploadDoneResponse, error)
+	// Get the download info to retrieve a file from the files storage server as well as
+	// the MerkleTree proofs to confirm it has not been tampered
+	DownloadFileInfo(context.Context, *DownloadFileInfoRequest) (*DownloadFileInfoResponse, error)
+	// Sends a greeting / Service ping request
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
 	mustEmbedUnimplementedVerifiableRemoteFileStorageServer()
 }
@@ -56,6 +97,15 @@ type VerifiableRemoteFileStorageServer interface {
 type UnimplementedVerifiableRemoteFileStorageServer struct {
 }
 
+func (UnimplementedVerifiableRemoteFileStorageServer) UploadBucket(context.Context, *UploadBucketRequest) (*UploadBucketResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadBucket not implemented")
+}
+func (UnimplementedVerifiableRemoteFileStorageServer) UploadDone(context.Context, *UploadDoneRequest) (*UploadDoneResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadDone not implemented")
+}
+func (UnimplementedVerifiableRemoteFileStorageServer) DownloadFileInfo(context.Context, *DownloadFileInfoRequest) (*DownloadFileInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DownloadFileInfo not implemented")
+}
 func (UnimplementedVerifiableRemoteFileStorageServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
 }
@@ -71,6 +121,60 @@ type UnsafeVerifiableRemoteFileStorageServer interface {
 
 func RegisterVerifiableRemoteFileStorageServer(s grpc.ServiceRegistrar, srv VerifiableRemoteFileStorageServer) {
 	s.RegisterService(&VerifiableRemoteFileStorage_ServiceDesc, srv)
+}
+
+func _VerifiableRemoteFileStorage_UploadBucket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadBucketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VerifiableRemoteFileStorageServer).UploadBucket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/vrfs.VerifiableRemoteFileStorage/UploadBucket",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VerifiableRemoteFileStorageServer).UploadBucket(ctx, req.(*UploadBucketRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VerifiableRemoteFileStorage_UploadDone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadDoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VerifiableRemoteFileStorageServer).UploadDone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/vrfs.VerifiableRemoteFileStorage/UploadDone",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VerifiableRemoteFileStorageServer).UploadDone(ctx, req.(*UploadDoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VerifiableRemoteFileStorage_DownloadFileInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DownloadFileInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VerifiableRemoteFileStorageServer).DownloadFileInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/vrfs.VerifiableRemoteFileStorage/DownloadFileInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VerifiableRemoteFileStorageServer).DownloadFileInfo(ctx, req.(*DownloadFileInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _VerifiableRemoteFileStorage_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -98,6 +202,18 @@ var VerifiableRemoteFileStorage_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "vrfs.VerifiableRemoteFileStorage",
 	HandlerType: (*VerifiableRemoteFileStorageServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UploadBucket",
+			Handler:    _VerifiableRemoteFileStorage_UploadBucket_Handler,
+		},
+		{
+			MethodName: "UploadDone",
+			Handler:    _VerifiableRemoteFileStorage_UploadDone_Handler,
+		},
+		{
+			MethodName: "DownloadFileInfo",
+			Handler:    _VerifiableRemoteFileStorage_DownloadFileInfo_Handler,
+		},
 		{
 			MethodName: "SayHello",
 			Handler:    _VerifiableRemoteFileStorage_SayHello_Handler,

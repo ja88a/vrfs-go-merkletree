@@ -4,10 +4,20 @@ option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/protos/v1/vrfs";
 
 package vrfs;
 
-// The VRFS service definition
+// The VRFS service API definition
 service VerifiableRemoteFileStorage {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {} 
+  // Request for a file bucket on the remote files storage server
+  rpc UploadBucket (UploadBucketRequest) returns (UploadBucketResponse);
+
+  // Confirm that files have been remotely stored and are consistent with the original/local file set
+  rpc UploadDone (UploadDoneRequest) returns (UploadDoneResponse);
+
+  // Get the download info to retrieve a file from the files storage server as well as 
+  // the MerkleTree proofs to confirm it has not been tampered
+  rpc DownloadFileInfo (DownloadFileInfoRequest) returns (DownloadFileInfoResponse);
+
+  // Sends a greeting / Service ping request
+  rpc SayHello (HelloRequest) returns (HelloReply); 
 }
 
 // The request message containing the user's name.
@@ -18,4 +28,44 @@ message HelloRequest {
 // The response message containing the greetings
 message HelloReply {
   string message = 1;
+}
+
+// The request message for a file bucket where to upload files, if granted
+message UploadBucketRequest {
+  string userId = 1;
+  string fileset_id = 2;
+}
+
+// The response message to a file bucket request
+message UploadBucketResponse {
+  int32 status = 1;
+  string bucket_id = 2;
+}
+
+// The request message for confirming files have been uploaded to a remote file storage
+message UploadDoneRequest {
+  string userId = 1;
+  string fileset_id = 2;
+  // The MerkleTree root hash of the files set, generated & kept on client side
+  string fileset_mt_root = 3;
+}
+
+// The request message for confirming files have been uploaded to a remote file storage
+message UploadDoneResponse {
+  int32 status = 1;
+  string message = 2;
+}
+
+// The request message for retrieving the necessary info to download and verify the consistency of a file
+message DownloadFileInfoRequest {
+  string user_id = 1;
+  string fileset_id = 2;
+  int32 file_index = 3;
+}
+
+// The response message for the download of a file and its consistency check based on MerkleTree proofs
+message DownloadFileInfoResponse {
+  string bucket_id = 1;
+  // The MerkleTree proofs to confirm the expected file hash consistency
+  repeated string mt_proofs = 2;
 }
