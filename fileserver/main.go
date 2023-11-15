@@ -9,13 +9,13 @@ import (
 
 func main() {
 	// Configuration
-	cfg, err := config.NewConfig()
+	cfg, err := config.NewConfig("server-rfs")
 	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}
 
 	log.Println("FileServer config: ", cfg)
 
-	// Run
+	// Run the service
 	app.Run(cfg)
 }

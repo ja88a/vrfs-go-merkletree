@@ -5,9 +5,9 @@ import (
 	"io"
 	"path/filepath"
 
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
 	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
 	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -31,13 +31,13 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 	fileSize = 0
 	defer func() {
 		if err := file.OutputFile.Close(); err != nil {
-			g.l.Error(err)
+			g.l.Error("Failed to close output file '%v'\nError: %v", file.FilePath, err)
 		}
 	}()
 	for {
 		req, err := stream.Recv()
 		if file.FilePath == "" {
-			file.SetFile(req.GetFileName(), g.cfg.FilesStorage.Location)
+			file.SetFile(req.GetFileName(), g.cfg.FilesStorage.Location +"/"+ req.GetBucketId())
 		}
 		if err == io.EOF {
 			break
@@ -47,7 +47,7 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 		}
 		chunk := req.GetChunk()
 		fileSize += uint32(len(chunk))
-		g.l.Debug("received a chunk with size: %d", fileSize)
+		g.l.Debug("Received a chunk with size: %d", fileSize)
 		if err := file.Write(chunk); err != nil {
 			return g.logError(status.Error(codes.Internal, err.Error()))
 		}
@@ -55,6 +55,7 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 
 	fmt.Println(file.FilePath, fileSize)
 	fileName := filepath.Base(file.FilePath)
-	g.l.Debug("saved file: %s, size: %d", fileName, fileSize)
+	g.l.Info("Saved file: %s, size: %d", fileName, fileSize)
+
 	return stream.SendAndClose(&pb.FileUploadResponse{FileName: fileName, Size: fileSize})
 }
