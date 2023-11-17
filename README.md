@@ -17,9 +17,18 @@ The overal implemented protocol for uploading or downloading local files to the 
 
 ![Implemented Protocol Overview](./doc/assets/VRFS_overview-protocol_v1.png)
 
+Key principles:
 * The VRFS Service handles the creds/access to the [external] NFS service
 * Files are directly uploaded to & downloaded from the NFS service
 * VRFS retrieves the file hashes from the NFS server, for building its Merkle Tree
+
+Design motivations:
+* Separation of concerns: storing the file sets (File Storage server) Vs. handling the files' verification process (VRFS API)
+    * Independence towards the used files storage service, i.e. can be replaced by a 3rd party file storage solution
+    * Corresponding micro-services cloud hosting platform instances can be customized per their core business requirements
+* Minimized data bandwidth consumption: with this design option
+    * the fact that the file storage service exposes an API for retrieving the file bucket hashes is a key requirement since this avoids the need for the VRFS API to upload or download the files
+    * Integrating a 3rd party solution would probably not support the provision of the [expected] file hashes
 
 This protocol results in: 
 * 6 steps to remotely store the files - 1 client command: 1 API & n file uploads requests + 1 VRFS-FS API request
@@ -27,7 +36,7 @@ This protocol results in:
 
 3 main components have been implemented:
 1. The VRFS API Service - The core component of this protocol, exposing a gRPC API
-2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually, or get the list of stored files' hashes
+2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually. It also supports the retrieval of the stored files' hashes
 3. A CLI client to execute the 2 main upload and download operations, along with MerkleProof-based file hash verifications
 
 
@@ -139,15 +148,19 @@ Overview of the considered overall, scalable solution to be implemented:
 ## Development status
 
 The depicted files' verification protocol on client side has not yet been finalized.
-The remaining key challenge is about the efficient serialization of the MerkleTree Proofs to be communicated
-to the clients on every file download verification, as well as for their DB storage.
+The remaining key challenge is about the efficient serialization of the MerkleTree Proofs 
+to be communicated to the clients on every file download verification, 
+as well as for their DB storage.
 
-A persistence layer for the VRFS Service is required to be implemented, via a DB ORM integration
-and a moreover distributed/embedded memory cache solution, such as Redis-like solutions.
+A persistence layer for the VRFS Service is implemented via a distributed & embedded memory cache solution, using Redis. An additional DB ORM integration could be required, a NoSQL DB such as Mongo could do the job.
 
 The computation models and their settings for the backbone Merkle Tree reference is to be 
 further refined and benchmarked, per the integration use case(s) and corresponding optimization 
 requirements for ad-hoc computation, storage and transport .
+
+For the file hashes computation, constituing the MarkleTree leaf values, the SHA256 hashing function is used (64 characters long for every string). 
+Alternative file hashing functions might be considered to optimize the computations runtime.
+Notice the fact that the client and the FS server require using the same hashing function on files.
 
 
 ## Solution Readiness - Status
