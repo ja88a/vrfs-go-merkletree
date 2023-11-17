@@ -167,7 +167,7 @@ Notice the fact that the client and the FS server require using the same hashing
 
 ### Missing for Production
 
-#### APIs Traffic management
+#### Access & Traffic management
 
 No user authentication mechanism has been implemented to protect the access to the service APIs.
 
@@ -176,16 +176,17 @@ Available client authentication options:
 * ECDSA signature - a digital signature made from an externally owned account
 
 External services acting as load balancers and an API Gateway should be integrated in order to deal with:
-* Load balancing
-* API requests routing & APIs versioning
-* Communications encryption
-* User authentication & permissions
+* Load balancing, API requests routing & APIs versioning - Ex.: AWS ALB
+* External communications encryption support & private subnets management 
+* User authentication & permissions - Ex.: AWS Cognito, KeyCloack
 
 #### Logs Reporting
 
 Actual services' JSON logs should be reported to a remote log watcher to review them, monitor the service and/or automate runtime alerts triggering.
 
-Example of available 3rd party solutions: Sentry.io - Refer to [sentry-go](https://github.com/getsentry/sentry-go).
+Example of available 3rd party solutions: 
+* AWS CloudWatch - Refer to their [Go SDK](https://docs.aws.amazon.com/sdk-for-go/api/service/cloudwatch/)
+* Sentry.io - Refer to [sentry-go](https://github.com/getsentry/sentry-go).
 
 #### Services Monitoring
 
@@ -211,7 +212,9 @@ A basic versioning mechanism is actually implemented for managing the Protobuf-b
 
 The Docker images are tagged using the semver CLI tool.
 
-The services actually handle a version number through their configuration file.
+The services handle a version number through their configuration file.
+
+Actual integration of the semver solution is to be pushed further.
 
 #### Automated Tests
 
@@ -221,6 +224,6 @@ E2E tests & a continuous integration / deployment flows should be implemented.
 
 #### CLI Client
 
-A Cordoba-like integration should be considered if the CLI client is given a priority.
+A Cobra-like integration should be considered if the CLI client is given a priority.
 
-A logger might also have to be integrated.
+A logs manager might also be integrated for prettier outputs.
