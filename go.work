@@ -4,10 +4,15 @@ go 1.21.4
 // replace github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0 => ./libs/protos
 // replace github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0 => ./libs/utils
 
-use ./libs/utils
-use ./libs/protos
-use ./libs/merkletree
+use (
+	./libs/redis
+	./libs/utils
 
-use ./server
-use ./fileserver
-use ./client
+	./libs/protos
+	./libs/merkletree
+
+	./client
+
+	./server
+	./fileserver
+)
