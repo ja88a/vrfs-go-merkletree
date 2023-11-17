@@ -6,7 +6,7 @@ import (
 	"os"
 
 	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
-	fileutils "github.com/ja88a/vrfs-go-merkletree/libs/utils/files"
+	mtfiles "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
 )
 
 // Batch upload of local files to the Remote FS store
@@ -40,7 +40,7 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 
 	// Verify the file hash to confirm it is not tampered, based on the local MerkleTree root and the retrieved proofs from VRFS
 	// Append the unique file name in the fileset to enforce the computed hash unicity
-	fileHashes, err := fileutils.ComputeFileHashes([]string{localFilePath})
+	fileHashes, err := mtfiles.ComputeFileHashes([]string{localFilePath})
 	if err != nil {
 		return fmt.Errorf("failed to compute hash for file '%v' \n%w", localFilePath, err)
 	}

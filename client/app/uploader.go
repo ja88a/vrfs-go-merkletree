@@ -10,7 +10,7 @@ import (
 	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	hash "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/hash"
-	fileutils "github.com/ja88a/vrfs-go-merkletree/libs/utils/files"
+	mtfiles "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
 )
 
 const debug = true
@@ -18,7 +18,7 @@ const debug = true
 // Initiate the verified upload protocol of all files found under the specified local directory path
 func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	// Get the list of available local file paths
-	files, err := fileutils.ListDirFilePaths(localDirPath)
+	files, err := mtfiles.ListDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {
 		return fmt.Errorf("no local files found in dir '%v'\n%w", localDirPath, err)
 	}
