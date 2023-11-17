@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: libs/protos/v1/fileserver/fileserver.proto
+// source: libs/rpcapi/protos/v1/fileserver/fileserver.proto
 
 package fileserver
 
@@ -241,5 +241,5 @@ var FileService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "libs/protos/v1/fileserver/fileserver.proto",
+	Metadata: "libs/rpcapi/protos/v1/fileserver/fileserver.proto",
 }

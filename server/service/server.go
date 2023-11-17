@@ -10,12 +10,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
+	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
-	"github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
+	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
+	logger "github.com/ja88a/vrfs-go-merkletree/libs/logger"
 	cache "github.com/ja88a/vrfs-go-merkletree/libs/redis/client"
 )
 
@@ -92,8 +91,9 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 	}
 
 	// Persist the MerkleTree proofs for each leaf node, for later retrieval by the client
-	// FIXME DB ORMS / distributed memory cache integration
-	STORE_fileSetTreeProofs[in.FilesetId] = tree.Proofs
+	//STORE_fileSetTreeProofs[in.FilesetId] = tree.Proofs
+	dbKey := computeDbKeyMtProofs(in.UserId, in.FilesetId)
+	g.db.Set(dbKey, tree.Proofs, 0)
 
 	// Compare the MerkleTree roots to confirm that file sets match, or not
 	treeRoot := fmt.Sprintf("%x", tree.Root)
@@ -106,8 +106,13 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 	return &pb.UploadDoneResponse{Status: 200, Message: "MerkleTree roots match!"}, nil
 }
 
-// FIXME Temporary solution for testing E2E -> External Persistence MANDATORY
-var STORE_fileSetTreeProofs = make(map[string][]*merkletree.Proof)
+// Utility method for computing the KV store's entry key for a set of MerkleTree proofs
+func computeDbKeyMtProofs(userId string, fileSetId string) string {
+	return userId +"_"+ fileSetId +"_mtproofs"
+}
+
+// Temporary solution for testing E2E -> External Persistence MANDATORY
+//var STORE_fileSetTreeProofs = make(map[string][]*merkletree.Proof)
 
 // Get the download info to retrieve a file from the files storage server as well as 
 // the MerkleTree proofs to confirm it has not been tampered while stored
@@ -116,7 +121,14 @@ func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context
 
 	bucketId := computeBucketId(in.UserId, in.FilesetId)
 	
-	mtProofs := STORE_fileSetTreeProofs[in.FilesetId]
+	//mtProofs := STORE_fileSetTreeProofs[in.FilesetId]
+	dbKey := computeDbKeyMtProofs(in.UserId, in.FilesetId)
+	mtProofs, err := g.db.Get(dbKey)
+	if err != nil {
+		respMsg := fmt.Sprintf("failed to retrieve mt proofs for fileset '%v' file #%d from db \n%v", in.FilesetId, in.FileIndex, err)
+		g.l.Error(respMsg)
+		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, status.Error(codes.DataLoss, respMsg)
+	}
 	if mtProofs == nil {
 		respMsg := fmt.Sprintf("No MerkleTree Proofs available for fileset %v", in.FilesetId)
 		g.l.Warn(respMsg)
@@ -124,6 +136,6 @@ func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context
 	}
 
 	// TODO Implement the Serialization of []merkletree.Proof{ Siblings: [][]byte, Path: uint32 }
-
+	//fileMtProofs := mtProofs[in.FileIndex]
 	return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, nil
 }

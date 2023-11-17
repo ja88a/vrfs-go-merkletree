@@ -4,19 +4,16 @@ go 1.21.4
 
 replace github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0 => ../libs/merkletree
 
-replace github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0 => ../libs/protos
-
-replace github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0 => ../libs/utils
+replace github.com/ja88a/vrfs-go-merkletree/libs/rpcapi v0.0.0 => ../libs/rpcapi
 
 require (
 	github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0
-	github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0
 	google.golang.org/grpc v1.59.0
 )
 
 require (
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0
+	github.com/ja88a/vrfs-go-merkletree/libs/rpcapi v0.0.0
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.12.0 // indirect

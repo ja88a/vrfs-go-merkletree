@@ -7,14 +7,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
+	"github.com/ja88a/vrfs-go-merkletree/libs/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	"github.com/ja88a/vrfs-go-merkletree/fileserver/service"
 
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
+	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
 )
 
 // Run creates objects via constructors.

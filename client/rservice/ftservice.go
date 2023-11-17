@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/file"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
+	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
 )
 
 // File transfer service context info
@@ -123,7 +123,7 @@ func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 
 // Handle a file download request towards the FS server, based on a bucket ID (previously loaded) and a file index
 // Consider the file index towards a lexically sorted list order of the target files directory
-func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*file.File, error) {
+func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*rpcfile.File, error) {
 	if s.debug {
 		log.Printf("Download file #%d from bucket '%v'", fileIndex, bucketId)
 	}
@@ -149,7 +149,7 @@ func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*file.File, er
 	}
 
 	pReader, pWriter := io.Pipe()
-	rFile := file.NewFromMetadata(md, pReader)
+	rFile := rpcfile.NewFromMetadata(md, pReader)
 	go copyFromResponse(pWriter, resp)
 
 	return rFile, nil

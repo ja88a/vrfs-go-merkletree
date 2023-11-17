@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
-	file "github.com/ja88a/vrfs-go-merkletree/libs/utils/file"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
+	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
+	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
 	futils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
-	logger "github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
+	logger "github.com/ja88a/vrfs-go-merkletree/libs/logger"
 )
 
 // Execution context of the service
@@ -164,12 +164,12 @@ Loop:
 	return nil
 }
 
-func getFile(filePaths []string, fileIndex int) (*file.File, error) {
+func getFile(filePaths []string, fileIndex int) (*rpcfile.File, error) {
 	filePath := filePaths[fileIndex]
 	fileData, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 	fileName := filepath.Base(filePath)
-	return file.NewFile(fileName, filepath.Ext(fileName), len(fileData), bytes.NewReader(fileData)), nil
+	return rpcfile.NewFile(fileName, filepath.Ext(fileName), len(fileData), bytes.NewReader(fileData)), nil
 }

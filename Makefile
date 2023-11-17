@@ -14,10 +14,10 @@ versions:
 protos:
 	protoc --go_out=. --go_opt=paths=source_relative \
 		 --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		libs/protos/v1/vrfs/vrfs.proto
+		libs/rpcapi/protos/v1/vrfs/vrfs.proto
 	protoc --go_out=. --go_opt=paths=source_relative \
 		 --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		libs/protos/v1/fileserver/fileserver.proto
+		libs/rpcapi/protos/v1/fileserver/fileserver.proto
 
 run-vrfs:
 	go run server/main.go &

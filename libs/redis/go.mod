@@ -2,10 +2,13 @@ module github.com/ja88a/vrfs-go-merkletree/libs/redis
 
 go 1.21
 
-// replace github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0 => ../utils
+// replace github.com/ja88a/vrfs-go-merkletree/libs/config v0.0.0 => ../config
+
+// replace github.com/ja88a/vrfs-go-merkletree/libs/logger v0.0.0 => ../logger
 
 require (
-	github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0
+	github.com/ja88a/vrfs-go-merkletree/libs/config v0.0.0
+	github.com/ja88a/vrfs-go-merkletree/libs/logger v0.0.0
 	github.com/redis/go-redis/v9 v9.3.0
 )
 

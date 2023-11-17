@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
+	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 )
 
 const UserMock = "umock"

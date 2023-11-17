@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
+	"github.com/ja88a/vrfs-go-merkletree/libs/config"
 	"github.com/ja88a/vrfs-go-merkletree/fileserver/app"
 )
 

@@ -89,7 +89,7 @@ The CLI client is configurable via the command parameters it exposes.
 
 The VRFS & FS server configurations rely on their dedicated yml config file in [config](./config), those
 parameters can be overridden via optional `.env` files or via runtime environment variables. Refer to 
-the cleanenv solution and its integration made in the lib utils [config](./libs/utils/config/config.go).
+the cleanenv solution and its integration made in the lib utils [config](./libs/config.go).
 
 All config settings come with default values to enable an out-of-the-box experience, and an easier dev one!
 

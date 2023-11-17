@@ -4,7 +4,7 @@ package main
 import (
 	"log"
 
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
+	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
 	app "github.com/ja88a/vrfs-go-merkletree/server/app"
 )
 

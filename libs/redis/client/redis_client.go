@@ -7,8 +7,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
+	"github.com/ja88a/vrfs-go-merkletree/libs/config"
+	"github.com/ja88a/vrfs-go-merkletree/libs/logger"
 )
 
 type CacheClient struct {

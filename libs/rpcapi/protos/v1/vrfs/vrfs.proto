@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/protos/v1/vrfs";
+option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/rpcapi/protos/v1/vrfs";
 
 package vrfs;
 

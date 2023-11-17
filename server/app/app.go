@@ -8,14 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
+	"github.com/ja88a/vrfs-go-merkletree/libs/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	"github.com/ja88a/vrfs-go-merkletree/server/service"
 
-	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
+	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
+	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
 )
 
 // Initialize the VRFS Service run by loading its config and initializing the gRPC API

@@ -2,13 +2,11 @@ module github.com/ja88a/vrfs-go-merkletree/fileserver
 
 go 1.21.4
 
-replace github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0 => ../libs/utils
-
-replace github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0 => ../libs/protos
+replace github.com/ja88a/vrfs-go-merkletree/libs/config v0.0.0 => ../libs/config
+replace github.com/ja88a/vrfs-go-merkletree/libs/logger v0.0.0 => ../libs/logger
+replace github.com/ja88a/vrfs-go-merkletree/libs/rpcapi v0.0.0 => ../libs/rpcapi
 
 require (
-	github.com/ja88a/vrfs-go-merkletree/libs/protos v0.0.0
-	github.com/ja88a/vrfs-go-merkletree/libs/utils v0.0.0
 	google.golang.org/grpc v1.59.0
 )
 
