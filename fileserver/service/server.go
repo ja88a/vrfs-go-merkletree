@@ -8,13 +8,14 @@ import (
 	"os"
 	"path/filepath"
 
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/file"
-	futils "github.com/ja88a/vrfs-go-merkletree/libs/utils/files"
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
+	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
+	file "github.com/ja88a/vrfs-go-merkletree/libs/utils/file"
+	futils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
+	logger "github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
 )
 
 // Execution context of the service

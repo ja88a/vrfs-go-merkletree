@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// Configuration
-	cfg, err := config.NewConfig("server-rfs")
+	cfg, err := config.NewConfig("server-fs")
 	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}
