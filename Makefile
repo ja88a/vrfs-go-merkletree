@@ -13,10 +13,10 @@ versions:
 
 protos:
 	protoc --go_out=. --go_opt=paths=source_relative \
-		 --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		libs/rpcapi/protos/v1/vrfs/vrfs.proto
 	protoc --go_out=. --go_opt=paths=source_relative \
-		 --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		libs/rpcapi/protos/v1/fileserver/fileserver.proto
 
 run-vrfs:
@@ -26,3 +26,12 @@ run-vrfs:
 run-filetranfer:
 	go run fileserver/main.go &
 	go run client/main.go
+
+docker-build-vrfs:
+	docker build -f ./server/Dockerfile -t vrfs-api:latest .
+
+docker-build-fserver:
+	docker build -f ./fileserver/Dockerfile -t vrfs-fs:latest .
+
+docker-compose-up:
+	docker compose up --force-recreate --remove-orphans

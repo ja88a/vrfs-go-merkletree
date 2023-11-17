@@ -42,7 +42,7 @@ type (
 	Cache struct {
 		Endpoint string `env-required:"true" yaml:"endpoint" env:"REDIS_ENDPOINT"`
 		User string `yaml:"user" env:"REDIS_USER"`
-		Password string `yaml:"password" env:"REDIS_PWD"`
+		Password string `yaml:"password" env:"REDIS_PASSWORD"`
 	}
 
 	// FSAPI -.

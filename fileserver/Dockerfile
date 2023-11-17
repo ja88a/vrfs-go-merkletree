@@ -17,11 +17,11 @@ COPY --chown=gorker:gorker . .
 
 # Copy Go modules and dependencies to image
 COPY ./libs ./libs
-COPY ./server ./server
+COPY ./fileserver ./fileserver
 COPY ./config ./config
 
 # Switch to the VRFS module dir
-WORKDIR /app-src/server
+WORKDIR /app-src/fileserver
 
 # Target directory for built artefacts
 RUN mkdir ./dist
@@ -36,7 +36,7 @@ RUN semver get release > ./dist/version
 
 # Run the build command which creates the production bundle
 RUN --mount=type=cache,target=/go-cache --mount=type=cache,target=/gomod-cache \
-    go build -o dist/vrfs-server ./main.go
+    go build -o dist/vrfs-fs ./main.go
 
 
 ###################
@@ -48,14 +48,13 @@ FROM golang:1.21-alpine3.18 As production
 WORKDIR /app
 
 # Copy the bundled code from the build stage to the production image
-#COPY --chown=gorker:gorker --from=build /app-src/server/dist ./
-COPY --chown=gorker:gorker --from=build /app-src/server/dist ./
-COPY --chown=gorker:gorker ./config/server-vrfs.yml ./config/server-vrfs.yml
+COPY --chown=gorker:gorker --from=build /app-src/fileserver/dist ./
+COPY --chown=gorker:gorker ./config/server-fs.yml ./config/server-fs.yml
 
 # Ensure the process will run under the user 'gorker'
 #USER gorker
 
 # Optional specification of the port to expose
-EXPOSE 50051
+EXPOSE 9000
 
-ENTRYPOINT ["/app/vrfs-server"]
+ENTRYPOINT ["./vrfs-fs"]
