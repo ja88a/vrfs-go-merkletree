@@ -24,7 +24,7 @@ services:
   #   networks:
   #     - vrfs-network
 
-  cache:
+  vrfs-cache:
     container_name: vrfs-cache
     image: redis:7.2.3-alpine3.18
     restart: unless-stopped
@@ -39,20 +39,20 @@ services:
   vrfs-fs:
     container_name: vrfs-fs
     build:
-      context: ../
+      context: .
       dockerfile: ./fileserver/Dockerfile
       target: production
     image: vrfs-fs
     restart: unless-stopped
     depends_on:
-      - cache
+      - vrfs-cache
     ports:
       - 9000:9000
     environment:
       GRPC_PORT: ':9000'
       LOG_LEVEL: 'debug'
     links:
-      - cache
+      - vrfs-cache
     volumes:
       - ./fs-playground/fs_client_files:/app/fs-playground/fs_client_files:rw
       - fserver_data:/fserver
@@ -62,23 +62,23 @@ services:
   vrfs-api:
     container_name: vrfs-api
     build:
-      context: ../
+      context: .
       dockerfile: ./server/Dockerfile
       target: production
     image: vrfs-api
     depends_on:
-      - cache
+      - vrfs-cache
       - vrfs-fs
     ports:
       - 50051:50051
     environment:
       GRPC_PORT: ':50051'
       LOG_LEVEL: 'debug'
-      REDIS_ENDPOINT: 'cache:6379'
+      REDIS_ENDPOINT: 'vrfs-cache:6379'
       REDIS_PASSWORD: hSy2TiQFw8Yyzs4oxqjzwvoM
       FSAPI_ENDPOINT: 'vrfs-fs:9000'
     links:
-      - cache
+      - vrfs-cache
       - vrfs-fs
     volumes:
       - vrfs_data:/vrfs:rw

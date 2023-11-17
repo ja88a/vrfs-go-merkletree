@@ -44,7 +44,31 @@ This protocol results in:
 
 ### Running the Servers
 
-A Docker Compose setup will enhance the below manual mode for running the 2 server modules:
+#### Docker Compose
+
+A Docker Compose setup enable building & running the 2 server modules and the Redis DB:
+
+```shell
+# Standard Docker Compose launch
+$ docker compose up
+
+# OR using a few custom config options
+$ make docker-compose-up
+
+# Quick clean-up (removal) of the local Docker containers & images for this project
+$ make docker-cleanup
+```
+
+The Docker images have their build time optimized through caching, and a production layer enables
+running clean instances.
+
+Refer to the respective Dockerfiles:
+* VRFS API server: [`./server`](./server/Dockerfile)
+* File Storage server: [`./fileserver`](./fileserver/Dockerfile)
+
+Notice the monorepo specific dependencies management/requirements in case of `replace` in the respective `go.mod` files.
+
+#### Manual Run of local Services
 
 ```shell
 # Run locally the File Storage server
