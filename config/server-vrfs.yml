@@ -3,10 +3,14 @@ app:
   version: '1.0.0'
 
 grpc:
-  port: ":50051"
+  port: ':50051'
 
 logger:
   log_level: 'debug'
+
+cache:
+  endpoint: 'localhost:6379'
+  password: 'hSy2TiQFw8Yyzs4oxqjzwvoM'
 
 fsapi:
   endpoint: 'localhost:9000'

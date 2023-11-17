@@ -1,0 +1,16 @@
+app:
+  name: 'remote-files-storage'
+  version: '1.0.0'
+
+grpc:
+  port: ":9000"
+
+files_storage:
+  location: "fs-playground/fs_client_files"
+
+logger:
+  log_level: 'debug'
+  
+cache:
+  endpoint: 'localhost:6379'
+  password: 'hSy2TiQFw8Yyzs4oxqjzwvoM'
