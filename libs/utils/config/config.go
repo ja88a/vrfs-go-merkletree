@@ -14,6 +14,7 @@ type (
 		GRPC         `yaml:"grpc"`
 		FilesStorage `yaml:"files_storage"`
 		Log          `yaml:"logger"`
+		Cache				 `yaml:"cache"`
 		FSAPI				 `yaml:"fsapi"`
 	}
 
@@ -31,11 +32,19 @@ type (
 	FilesStorage struct {
 		Location string `yaml:"location" env:"FILES_LOCATION"`
 	}
+
 	// Log -.
 	Log struct {
 		Level string `env-required:"true" yaml:"log_level" env:"LOG_LEVEL"`
 	}
 	
+	// Cache -.
+	Cache struct {
+		Endpoint string `env-required:"true" yaml:"endpoint" env:"REDIS_ENDPOINT"`
+		User string `yaml:"user" env:"REDIS_USER"`
+		Password string `yaml:"password" env:"REDIS_PWD"`
+	}
+
 	// FSAPI -.
 	FSAPI struct {
 		Endpoint string `yaml:"endpoint" env:"FSAPI_ENDPOINT"`
