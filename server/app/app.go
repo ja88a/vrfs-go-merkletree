@@ -26,6 +26,7 @@ func Run(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Init the gRPC API service
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
 
@@ -34,6 +35,7 @@ func Run(cfg *config.Config) error {
 		return fmt.Errorf("failed to init the VRFS service\n%w", err)
 	}
 	pbvrfs.RegisterVerifiableRemoteFileStorageServer(grpcServer, vrfsServer)
+	
 	listen, err := net.Listen("tcp", cfg.GRPC.Port)
 	if err != nil {
 		logger.Fatal(err)
@@ -49,14 +51,14 @@ func Run(cfg *config.Config) error {
 	signal.Notify(interrupt, shutdownSignals...)
 
 	go func(g *grpc.Server) {
-		logger.Info("gRPC server started on port " + cfg.GRPC.Port)
+		logger.Info("VRFS gRPC server started on port " + cfg.GRPC.Port)
 		if err := g.Serve(listen); err != nil {
 			logger.Fatal(err)
 		}
 	}(grpcServer)
 	select {
 	case killSignal := <-interrupt:
-		logger.Debug("Got ", killSignal)
+		logger.Warn("Received kill signal: %v", killSignal)
 		cancel()
 	case <-ctx.Done():
 	}

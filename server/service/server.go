@@ -5,23 +5,27 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
-	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
-	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
-	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+
+	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/fileserver"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/protos/v1/vrfs"
+
+	config "github.com/ja88a/vrfs-go-merkletree/libs/utils/config"
+	"github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
+	"github.com/ja88a/vrfs-go-merkletree/libs/utils/logger"
+	cache "github.com/ja88a/vrfs-go-merkletree/libs/redis/client"
 )
 
 // Service execution context
 type VerifiableRemoteFileStorageServer struct {
 	pb.UnimplementedVerifiableRemoteFileStorageServer
-	l        *logger.Logger
-	cfg      *config.Config
-	fsClient pbfs.FileServiceClient
+	l        	*logger.Logger
+	cfg      	*config.Config
+	fsClient 	pbfs.FileServiceClient
+	db				*cache.CacheClient
 }
 
 // Init the service execution context
@@ -32,10 +36,14 @@ func New(l *logger.Logger, cfg *config.Config) (*VerifiableRemoteFileStorageServ
 		return nil, fmt.Errorf("VRFS failed to dial FS server at '%v'\n%v", cfg.FSAPI.Endpoint, err)
 	}
 
+	// Cache DB client
+	kvdb := cache.NewCacheClient(context.Background(), l, cfg)
+
 	return &VerifiableRemoteFileStorageServer{
 		l:        l,
 		cfg:      cfg,
 		fsClient: pbfs.NewFileServiceClient(fsConn),
+		db: 			kvdb,
 	}, nil
 }
 
