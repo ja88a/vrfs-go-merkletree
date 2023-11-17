@@ -2,13 +2,12 @@ module github.com/ja88a/vrfs-go-merkletree/libs/utils
 
 go 1.21
 
-//replace github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0 => ../merkletree
-
-require github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0
+// replace github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0 => ../merkletree
 
 require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/rs/zerolog v1.31.0
+	google.golang.org/grpc v1.59.0
 )
 
 require (
