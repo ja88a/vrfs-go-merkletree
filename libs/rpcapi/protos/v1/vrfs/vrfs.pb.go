@@ -236,7 +236,7 @@ type UploadDoneRequest struct {
 
 	UserId    string `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
 	FilesetId string `protobuf:"bytes,2,opt,name=fileset_id,json=filesetId,proto3" json:"fileset_id,omitempty"`
-	// The MerkleTree root hash of the files set, generated & kept on client side
+	// The MerkleTree root hash of the fileset, generated & kept on client side
 	FilesetMtRoot string `protobuf:"bytes,3,opt,name=fileset_mt_root,json=filesetMtRoot,proto3" json:"fileset_mt_root,omitempty"`
 }
 

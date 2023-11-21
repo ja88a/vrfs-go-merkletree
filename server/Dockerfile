@@ -55,7 +55,7 @@ RUN --mount=type=cache,target=/go-cache --mount=type=cache,target=/gomod-cache \
 # PRODUCTION
 ###################
 
-FROM golang:1.21-alpine3.18 As production
+FROM gcr.io/distroless/base-debian12 As production
 
 WORKDIR /app
 

@@ -36,7 +36,7 @@ docker-build-fserver:
 	docker build -f ./fileserver/Dockerfile -t vrfs-fs:latest .
 
 docker-compose-up:
-	docker compose up --force-recreate --remove-orphans
+	docker compose up --build --force-recreate --remove-orphans
 
 docker-cleanup:
 	docker container rm -v vrfs-fs vrfs-api vrfs-cache && docker image rm -f  vrfs-fs vrfs-api

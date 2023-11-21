@@ -15,7 +15,7 @@ import (
 func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error {
 	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
 
-	// Retrieve necessary download & verification proofs from VRFS
+	// 1. Retrieve necessary download & verification proofs from VRFS
 	bucketId, mtProofs, err := ctx.HandleDownloadFileInfoReq(srvctx.UserMock, fileSetId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetId, err)
@@ -26,35 +26,37 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 		log.Printf("ERROR missing the merkle proofs from VFS to check the consistency of file '%d' in fileset '%v'", fileIndex, fileSetId)
 	}
 
-	// Initiate the file download from the File Store server
+	// 2. Save the file locally, in the client download dir
+	// Initiate the file download process from the File Storage server
 	ftService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize)
-
 	dFile, err := ftService.DownloadFile(bucketId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("download process of file %d in FS bucket '%v'\n%w", fileIndex, bucketId, err)
 	}
 
-	// Save the file in a local dir
 	localDirPath := computeFilesetDownloadDir(ctx, fileSetId)
 	if _, err := os.Stat(localDirPath); os.IsNotExist(err) { 
-    os.MkdirAll(localDirPath, 0700)
+    os.MkdirAll(localDirPath, os.ModePerm) // 511
 	}
-	localFilePath := localDirPath + dFile.Name
+	localFilePath := localDirPath + "/" + dFile.Name
 	localFile, err := os.Create(localFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to create local download dir '%v' \n%w", localFilePath, err)
+		return fmt.Errorf("failed to create local file for download '%v' \n%w", localFilePath, err)
 	}
 	defer localFile.Close()
 
-	_, _ = localFile.ReadFrom(dFile)
+	_, err = localFile.ReadFrom(dFile)
+	if err != nil {
+		return fmt.Errorf("failed to stream file data to '%v' \n%w", localFilePath, err)
+	}
 
-	// Verify the downloaded file hash based on the fileset's MerkleTree root 
-	// and the retrieved proofs from VRFS
+	// 3. Verify the downloaded file's hash based on the fileset's MerkleTree root 
+	// and the MerkleTree proofs retrieved from VRFS
 	fileHashes, err := mtfiles.ComputeFileHashes([]string{localFilePath})
 	if err != nil {
 		return fmt.Errorf("failed to compute hash for file '%v' \n%w", localFilePath, err)
 	}
-	log.Printf("Downloaded file '%v' Hash: %v", localFilePath, fileHashes[0])
+	log.Printf("File '%v' downloaded Hash: %v", localFilePath, fileHashes[0])
 
 	// rootHash := strings.TrimPrefix("fs-", fileSetId)
 	// fileBlock := &mt.DataBlock{
@@ -67,5 +69,5 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 }
 
 func computeFilesetDownloadDir(ctx *srvctx.ApiService, fileSetId string) string {
-	return ctx.LocalFileDownloadRepo + "/" + fileSetId + "/"
+	return ctx.LocalFileDownloadRepo + "/" + fileSetId
 }

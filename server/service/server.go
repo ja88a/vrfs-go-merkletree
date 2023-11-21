@@ -95,7 +95,7 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 	dbKey := computeDbKeyMtProofs(in.UserId, in.FilesetId)
 	g.db.Set(dbKey, tree.Proofs, 0)
 
-	// Compare the MerkleTree roots to confirm that file sets match, or not
+	// Compare the MerkleTree roots to confirm that filesets match, or not
 	treeRoot := fmt.Sprintf("%x", tree.Root)
 	if treeRoot != in.GetFilesetMtRoot() {
 		respErr := fmt.Errorf("VRFS MerkleTree roots differ for fileset '%v' (bucket: %v) - Generated root: '%v'", in.GetFilesetId(), bucketId, treeRoot)
@@ -103,7 +103,7 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 		return &pb.UploadDoneResponse{Status: 419, Message: fmt.Sprint(respErr)}, nil
 	}
 
-	g.l.Info("files stored in FS bucket '%v' for the fileset '%v' have their merkle tree root aligned with the client one", bucketId, in.FilesetId)
+	g.l.Info("Files stored in FS bucket '%v' for the client fileset '%v' have their merkle tree root matching the client one: %v", bucketId, in.FilesetId, treeRoot)
 	
 	return &pb.UploadDoneResponse{Status: 200, Message: "MerkleTree roots match - Successful Files Upload confirmed"}, nil
 }

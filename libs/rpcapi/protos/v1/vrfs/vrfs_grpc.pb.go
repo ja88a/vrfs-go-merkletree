@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type VerifiableRemoteFileStorageClient interface {
 	// Request for a file bucket on the remote files storage server
 	UploadBucket(ctx context.Context, in *UploadBucketRequest, opts ...grpc.CallOption) (*UploadBucketResponse, error)
-	// Confirm that files have been remotely stored and are consistent with the original/local file set
+	// Confirm that files have been remotely stored and are consistent with the original/local fileset
 	UploadDone(ctx context.Context, in *UploadDoneRequest, opts ...grpc.CallOption) (*UploadDoneResponse, error)
 	// Get the download info to retrieve a file from the files storage server as well as
 	// the MerkleTree proofs to confirm it has not been tampered
@@ -83,7 +83,7 @@ func (c *verifiableRemoteFileStorageClient) SayHello(ctx context.Context, in *He
 type VerifiableRemoteFileStorageServer interface {
 	// Request for a file bucket on the remote files storage server
 	UploadBucket(context.Context, *UploadBucketRequest) (*UploadBucketResponse, error)
-	// Confirm that files have been remotely stored and are consistent with the original/local file set
+	// Confirm that files have been remotely stored and are consistent with the original/local fileset
 	UploadDone(context.Context, *UploadDoneRequest) (*UploadDoneResponse, error)
 	// Get the download info to retrieve a file from the files storage server as well as
 	// the MerkleTree proofs to confirm it has not been tampered

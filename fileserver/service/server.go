@@ -68,7 +68,7 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 
 	fmt.Println(file.FilePath, fileSize)
 	fileName := filepath.Base(file.FilePath)
-	g.l.Info("Saved file: %s, size: %d", fileName, fileSize)
+	g.l.Debug("Saved file: %s, size: %d", fileName, fileSize)
 
 	return stream.SendAndClose(&pb.FileUploadResponse{FileName: fileName, Size: fileSize})
 }

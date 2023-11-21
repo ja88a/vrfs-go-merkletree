@@ -23,12 +23,12 @@ Key principles:
 * VRFS retrieves the file hashes from the FS server, for building its Merkle Tree and store corresponding proofs
 
 Design motivations:
-* Separation of concerns: storing the file sets (File Storage server) Vs. handling the files' verification process (VRFS API)
+* Separation of concerns: storing the filesets (File Storage server) Vs. handling the files' verification process (VRFS API)
     * Independence towards the used files storage service, i.e. can be replaced by a 3rd party file storage solution
     * Corresponding micro-services cloud hosting platform instances can be customized per their core business requirements
 * Minimized data bandwidth consumption: with this design option
     * the fact that the file storage service exposes an API for retrieving the file bucket hashes is a key requirement since this avoids the need for the VRFS API to upload or download the files
-    * Integrating a 3rd party solution would probably not support the provision of the [expected] file hashes
+    * Integrating a 3rd party solution would probably not support the provision of the  file hashes. Integrating with a IPFS CID might be an option.
 
 This protocol results in: 
 * 6 steps to remotely store the files - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
@@ -59,14 +59,17 @@ $ make docker-compose-up
 $ make docker-cleanup
 ```
 
-The Docker images have their build time optimized through caching, and a production layer enables
-running clean instances.
+The Docker images have their build time optimized through caching, and a production layer 
+enables running clean instances.
 
 Refer to the respective Dockerfiles:
 * VRFS API server: [`./server`](./server/Dockerfile)
 * File Storage server: [`./fileserver`](./fileserver/Dockerfile)
 
 Notice there the monorepo specific dependencies management/requirements in case of `replace` in the respective `go.mod` files.
+
+[Distroless images](https://github.com/GoogleContainerTools/distroless) are used for generating light Docker containers:
+![Shell snapshot of cmd `docker image ls`](./doc/assets/shellshot_docker-image-ls.png)
 
 #### Manual Run of local Services
 
@@ -78,7 +81,7 @@ $ go run ./fileserver
 $ go run ./server
 ```
 
-### Running the CLI client
+### Running the Client CLI
 
 List the available client CLI parameters:
 
@@ -89,7 +92,7 @@ $ go run ./client -h
 File Upload & Verify protocol: Upload all files of a local directory to the remote file storage server:
 
 ```shell
-# With default service endpoints
+# Upload a fileset with default service endpoints
 $ go run ./client -action upload -updir ./fs-playground/forupload/catyclops
 
 # Or by specifying the service endpoints and a max chunk size
@@ -108,6 +111,17 @@ $ go run ./client -action download \
     -index 5
     -downdir ./fs-playground/downloaded
 ```
+
+Demo scripts for running client commands are available in the [Makefile](./Makefile). 
+A default playground directory [fs-playground](./fs-playground/) with sample files is provided, for testing files' uploads and downloads.
+
+```shell
+# Store local files remotely
+$ make demo-run-upload
+# Download a file
+$ make demo-run-download
+```
+
 
 ### Building Executable Go Modules
 
@@ -185,9 +199,9 @@ The computation models and their settings for the backbone Merkle Tree reference
 further refined and benchmarked, per the integration use case(s) and corresponding optimization 
 requirements for ad-hoc computation, storage and transport.
 
-For the file hashes computation, constituing the MarkleTree leaf values, the SHA256 hashing function is used (NIS SHA-2, 64 characters long for every string). 
-Alternative file hashing functions might be considered to optimize the computations runtime.
-Notice the fact that the client and the FS server require using the same hashing function on files.
+For the file hashes computation, constituing the MarkleTree leaf values, the SHA2-256 hashing function is used (NIS, 64 characters long for every string).
+Alternative file hashing functions might be considered to adapt and/or optimize the computations runtime.
+Notice the fact that the client and the FS server require using the same hashing function on files since both build a Merkle Tree out of the file hashes.
 
 
 

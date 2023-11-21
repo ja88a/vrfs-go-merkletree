@@ -40,7 +40,7 @@ func ComputeFileHashes(filePaths []string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("files hashing process failed on reading content of file '%v'\nError:\n%v", filePath, err)
 		}
-
+		
 		// Append the unique file name in the fileset to enforce the computed hash unicity
 		fileName := filepath.Base(filePath)
 		fileContentName := append(fileContent, fileName...)
@@ -48,7 +48,7 @@ func ComputeFileHashes(filePaths []string) ([]string, error) {
 		// Hash computation
 		fileHash, err := hash.DefaultHashFuncParallel(fileContentName)
 		if err != nil {
-			return nil, fmt.Errorf("upload process failed on computing hash for file '%v'\nError:\n%v", filePath, err)
+			return nil, fmt.Errorf("upload process failed on computing hash for file '%v'\n%w", filePath, err)
 		}
 		fileHashes = append(fileHashes, fmt.Sprintf("%x", fileHash))
 

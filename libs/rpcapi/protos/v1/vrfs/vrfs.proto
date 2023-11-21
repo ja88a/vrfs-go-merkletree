@@ -9,7 +9,7 @@ service VerifiableRemoteFileStorage {
   // Request for a file bucket on the remote files storage server
   rpc UploadBucket (UploadBucketRequest) returns (UploadBucketResponse);
 
-  // Confirm that files have been remotely stored and are consistent with the original/local file set
+  // Confirm that files have been remotely stored and are consistent with the original/local fileset
   rpc UploadDone (UploadDoneRequest) returns (UploadDoneResponse);
 
   // Get the download info to retrieve a file from the files storage server as well as 
@@ -46,7 +46,7 @@ message UploadBucketResponse {
 message UploadDoneRequest {
   string userId = 1;
   string fileset_id = 2;
-  // The MerkleTree root hash of the files set, generated & kept on client side
+  // The MerkleTree root hash of the fileset, generated & kept on client side
   string fileset_mt_root = 3;
 }
 

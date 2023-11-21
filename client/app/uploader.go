@@ -142,7 +142,7 @@ func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []strin
 // Confirm from the VRFS API that all local files have been properly uploaded to the File Storage server
 //
 // Provide the locally generated MerkleTree root so that the VRFS API compares it with its own generated
-// MerkleTree root hash for the remotely stored files set.
+// MerkleTree root hash for the remotely stored fileset.
 func confirmFilesUploadIsDoneAndCorrect(ctx *srvctx.ApiService, fileSetId string, rootHash string) (bool, error) {
 	// Notify VRFS that files upload is done
 	status, message, err := ctx.HandleUploadDoneReq(srvctx.UserMock, fileSetId, rootHash)
@@ -156,7 +156,7 @@ func confirmFilesUploadIsDoneAndCorrect(ctx *srvctx.ApiService, fileSetId string
 	} else if status == 419 {
 		return false, fmt.Errorf("remotely stored files for fileset '%v' do not match with local ones (root: %v)\nStatus %d : %v", fileSetId, rootHash, status, message)
 	} else if status == 200 {
-		log.Printf("Remote storage of files set '%v' verified as untampered - Status %d : %v", fileSetId, status, message)
+		log.Printf("Remote storage of fileset '%v' verified as untampered - Status %d : %v", fileSetId, status, message)
 		return true, nil
 	}
 	return false, fmt.Errorf("unsupported status return by VRFS while checking for the remotely stored files consistency for fileset '%v' (%x)\nStatus %d : %v", fileSetId, rootHash, status, message)
