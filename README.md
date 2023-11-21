@@ -8,19 +8,19 @@ The Verifiable Remote File Storage service aims at checking the consistency of u
 
 This is the mono repository for the Go-based implementation of 2 backend services and 1 CLI client.
 
-The gRPC protocol is used for optimal client-server and server-server communications.
+The gRPC protocol is used for optimal client-server and server-to-server communications.
 
 
 ### Protocol Overview
 
-The overal implemented protocol for uploading or downloading local files to the remote file storage service and always have the files verified based on the generation of a Merkle Tree root and proofs for the checking the leaf values, the file hashes here:
+The overall implemented protocol for uploading or downloading local files to the remote file storage service, and have the files verified based on the generation of a Merkle Tree root and proofs for checking the leaf values (the file hashes here):
 
 ![Implemented Protocol Overview](./doc/assets/VRFS_overview-protocol_v1.png)
 
 Key principles:
-* The VRFS Service handles the creds/access to the [external] NFS service
-* Files are directly uploaded to & downloaded from the NFS service
-* VRFS retrieves the file hashes from the NFS server, for building its Merkle Tree
+* The VRFS Service handles the creds/access to the [external] FS service
+* Files are directly uploaded to & downloaded from the FS service
+* VRFS retrieves the file hashes from the FS server, for building its Merkle Tree and store corresponding proofs
 
 Design motivations:
 * Separation of concerns: storing the file sets (File Storage server) Vs. handling the files' verification process (VRFS API)
@@ -31,8 +31,8 @@ Design motivations:
     * Integrating a 3rd party solution would probably not support the provision of the [expected] file hashes
 
 This protocol results in: 
-* 6 steps to remotely store the files - 1 client command: 1 API & n file uploads requests + 1 VRFS-FS API request
-* 3 steps to retrieve & verify a file - 1 client command: 1 API & 1 file download requests
+* 6 steps to remotely store the files - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
+* 3 steps to retrieve & verify a file - 1 client command: 1 VRFS API & 1 file download requests
 
 3 main components have been implemented:
 1. The VRFS API Service - The core component of this protocol, exposing a gRPC API
@@ -46,7 +46,7 @@ This protocol results in:
 
 #### Docker Compose
 
-A Docker Compose setup enable building & running the 2 server modules and the Redis DB:
+A Docker Compose setup enables building & running the 2 server modules and a Redis DB acting as a distributed KV cache:
 
 ```shell
 # Standard Docker Compose launch
@@ -66,7 +66,7 @@ Refer to the respective Dockerfiles:
 * VRFS API server: [`./server`](./server/Dockerfile)
 * File Storage server: [`./fileserver`](./fileserver/Dockerfile)
 
-Notice the monorepo specific dependencies management/requirements in case of `replace` in the respective `go.mod` files.
+Notice there the monorepo specific dependencies management/requirements in case of `replace` in the respective `go.mod` files.
 
 #### Manual Run of local Services
 
@@ -94,8 +94,8 @@ $ go run ./client -action upload -updir ./fs-playground/forupload/catyclops
 
 # Or by specifying the service endpoints and a max chunk size
 $ go run ./client -action upload -updir ./fs-playground/forupload/catyclops \
-    -api vrfs-server:50051 \
-    -fs nfs-server:9000 \
+    -api vrfs-api:50051 \
+    -fs vrfs-fs:9000 \
     -chunk 1024
 ```
 
@@ -111,18 +111,21 @@ $ go run ./client -action download \
 
 ### Building Executable Go Modules
 
-```
+```shell
+# Build exec Client CLI
 go build ./client -o ./dist/vrfs-client
-go build ./server -o ./
+# Build exec VRFS Server
+go build ./server -o ./dist/vrfs-server
+# Build exec VRFS FileServer
+go build ./fileserver -o ./dist/vrfs-fs
 ```
 
 ### Modules Runtime Config
 
-The CLI client is configurable via the command parameters it exposes.
+The CLI client is configurable via the command parameters it exposes. Its settings and default values are defined in the client [`main.go`](./client/main.go).
 
-The VRFS & FS server configurations rely on their dedicated yml config file in [config](./config), those
-parameters can be overridden via optional `.env` files or via runtime environment variables. Refer to 
-the cleanenv solution and its integration made in the lib utils [config](./libs/config.go).
+The VRFS & FS server configurations rely on their dedicated `yaml` config file available in [config](./config), those parameters can be overridden via optional `.env` files or via runtime environment variables. 
+Refer to the [cleanenv](https://github.com/ilyakaznacheev/cleanenv) solution and its integration made in the utility [`libs/config`](./libs/config.go).
 
 All config settings come with default values to enable an out-of-the-box experience, and an easier dev one!
 
@@ -151,40 +154,41 @@ Refer to the workspace config file: [`go.work`](./go.work).
 
 Adding a new module to the workspace:
 
-```
+```shell
 $ mkdir moduleX
-$moduleX/ go mod init github.com/ja88a/vrfs-go-merkletree/moduleX
+moduleX/$ go mod init github.com/ja88a/vrfs-go-merkletree/moduleX
 $ go work use ./moduleX
 ```
 
 
 ## Architecture
 
-Overview of the VRFS Service and its main components:
-
-![VRFS Service Overview](./doc/assets/VRFS_overview-service_v1.png)
-
 Overview of the considered overall, scalable solution to be implemented: 
 
 ![VRFS Solution Overview](./doc/assets/VRFS_overview-solution_v1b.png)
 
+Overview of the VRFS Service main components:
+
+![VRFS Service Overview](./doc/assets/VRFS_overview-service_v1.png)
+
 
 ## Development status
 
-The depicted files' verification protocol on client side has not yet been finalized.
+The depicted files' verification protocol on client side has not been finalized yet.
 The remaining key challenge is about the efficient serialization of the MerkleTree Proofs 
-to be communicated to the clients on every file download verification, 
+to be communicated to clients on every request for a file download info and enable its verification, 
 as well as for their DB storage.
 
-A persistence layer for the VRFS Service is implemented via a distributed & embedded memory cache solution, using Redis. An additional DB ORM integration could be required, a NoSQL DB such as Mongo could do the job.
+A persistence layer for the VRFS Service is implemented via a distributed memory cache solution, using [Redis](https://redis.com/glossary/distributed-caching/). An additional DB ORM integration could be required, a NoSQL DB such as Mongo could do the job.
 
 The computation models and their settings for the backbone Merkle Tree reference is to be 
 further refined and benchmarked, per the integration use case(s) and corresponding optimization 
-requirements for ad-hoc computation, storage and transport .
+requirements for ad-hoc computation, storage and transport.
 
-For the file hashes computation, constituing the MarkleTree leaf values, the SHA256 hashing function is used (64 characters long for every string). 
+For the file hashes computation, constituing the MarkleTree leaf values, the SHA256 hashing function is used (NIS SHA-2, 64 characters long for every string). 
 Alternative file hashing functions might be considered to optimize the computations runtime.
 Notice the fact that the client and the FS server require using the same hashing function on files.
+
 
 
 ## Solution Readiness - Status

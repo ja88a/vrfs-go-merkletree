@@ -50,7 +50,7 @@ services:
       - 9000:9000
     environment:
       GRPC_PORT: ':9000'
-      LOG_LEVEL: 'debug'
+      LOG_LEVEL: 'info'
     links:
       - vrfs-cache
     volumes:
@@ -73,7 +73,7 @@ services:
       - 50051:50051
     environment:
       GRPC_PORT: ':50051'
-      LOG_LEVEL: 'debug'
+      LOG_LEVEL: 'info'
       REDIS_ENDPOINT: 'vrfs-cache:6379'
       REDIS_PASSWORD: hSy2TiQFw8Yyzs4oxqjzwvoM
       FSAPI_ENDPOINT: 'vrfs-fs:9000'

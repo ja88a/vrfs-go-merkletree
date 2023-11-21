@@ -14,7 +14,7 @@ var (
 	action      = flag.String("action", "", "The expected client action: `ping` (default); `upload` or `download` of files in the specified `dir`")
 	updir     	= flag.String("updir", "fs-playground/forupload/catyclops", "Upload - The local directory where to find files to upload or to download a file to, depending on the specified action")
 	downdir			= flag.String("downdir", "fs-playground/downloaded", "Download - The local directory where client files are downloaded to")
-	fileSet   	= flag.String("fileset", "fs-10f652e11f5e2f799481ed02d45a74bcf3d62dea3200ad08120bba43c242f5fb", "Download - The files set ID to request for a file download")
+	fileSet   	= flag.String("fileset", "fs-c32c7fac4685a43c2e7806d13bdd737a12f56322a65d23e29d81ae0a34a13019", "Download - The files set ID to request for a file download")
 	index   		= flag.String("index", "0", "Download - The index number of the file to be downloaded in the specified local dir")
 	apiEndpoint = flag.String("api", "localhost:50051", "The gRPC endpoint (host & port) for the VRFS Service API")
 	rfsEndpoint = flag.String("fs", "localhost:9000", "The gRPC endpoint (host & port) for the Remote File Storage service")

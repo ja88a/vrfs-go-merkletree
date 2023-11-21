@@ -64,7 +64,7 @@ func (g *VerifiableRemoteFileStorageServer) SayHello(ctx context.Context, in *pb
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-// Handle the requests for notifying that a fileset has been uploaded and its consistency verified and confirmed to the client
+// Handle the requests for notifying that a fileset has been uploaded, its consistency verified and confirmed to the client
 func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *pb.UploadDoneRequest) (*pb.UploadDoneResponse, error) {
 	g.l.Debug("Received UploadDone req from '%d' for fileset '%v' with MT root '%v'", in.UserId, in.FilesetId, in.FilesetMtRoot)
 	bucketId := computeBucketId(in.UserId, in.FilesetId)
@@ -103,7 +103,9 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 		return &pb.UploadDoneResponse{Status: 419, Message: fmt.Sprint(respErr)}, nil
 	}
 
-	return &pb.UploadDoneResponse{Status: 200, Message: "MerkleTree roots match!"}, nil
+	g.l.Info("files stored in FS bucket '%v' for the fileset '%v' have their merkle tree root aligned with the client one", bucketId, in.FilesetId)
+	
+	return &pb.UploadDoneResponse{Status: 200, Message: "MerkleTree roots match - Successful Files Upload confirmed"}, nil
 }
 
 // Utility method for computing the KV store's entry key for a set of MerkleTree proofs
@@ -115,7 +117,7 @@ func computeDbKeyMtProofs(userId string, fileSetId string) string {
 //var STORE_fileSetTreeProofs = make(map[string][]*merkletree.Proof)
 
 // Get the download info to retrieve a file from the files storage server as well as 
-// the MerkleTree proofs to confirm it has not been tampered while stored
+// the MerkleTree proofs to confirm it has not been tampered while being stored
 func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context, in *pb.DownloadFileInfoRequest) (*pb.DownloadFileInfoResponse, error) {
 	g.l.Debug("Received DownloadFileInfo req from '%d' for fileset '%v' file #%v", in.UserId, in.FilesetId, in.FileIndex)
 
@@ -130,9 +132,9 @@ func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context
 		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, status.Error(codes.DataLoss, respMsg)
 	}
 	if mtProofs == nil {
-		respMsg := fmt.Sprintf("No MerkleTree Proofs available for fileset %v", in.FilesetId)
+		respMsg := fmt.Sprintf("No MerkleTree Proofs available for fileset '%v'", in.FilesetId)
 		g.l.Warn(respMsg)
-		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, status.Error(codes.FailedPrecondition, respMsg)
+		//return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, status.Error(codes.FailedPrecondition, respMsg)
 	}
 
 	// TODO Implement the Serialization of []merkletree.Proof{ Siblings: [][]byte, Path: uint32 }

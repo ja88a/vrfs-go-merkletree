@@ -13,8 +13,6 @@ import (
 	mtfiles "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
 )
 
-const debug = true
-
 // Initiate the verified upload protocol of all files found under the specified local directory path
 func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	// Get the list of available local file paths
@@ -26,7 +24,7 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	log.Printf("Upload - Found %v files in local dir '%v'", len(files), localDirPath)
 
 	// Compute the file hashes, converted to MT data blocks
-	fileHashes, err := computeFileHashes(files)
+	fileHashes, err := computeFileHashBlocks(files)
 	if err != nil {
 		return fmt.Errorf("failure while computing file hashes for '%v'\n%w", localDirPath, err)
 	}
@@ -86,15 +84,15 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 // Compute the hash for each file, read their content from the provided file path.
 //
 // File hashes are stored as a merkle tree's leaf/block.
-func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
+func computeFileHashBlocks(filePaths []string) ([]mt.IDataBlock, error) {
 	fileCounter := 0
-	var fileHashes []mt.IDataBlock
+	var fileHashBlocks []mt.IDataBlock
 
 	// Loop over the dir files
 	for _, filePath := range filePaths {
 		fileContent, err := os.ReadFile(filePath)
 		if err != nil {
-			return fileHashes, fmt.Errorf("Upload process failed on reading content of file '%v'\nError:\n%v", filePath, err)
+			return fileHashBlocks, fmt.Errorf("Upload process failed on reading content of file '%v'\nError:\n%v", filePath, err)
 		}
 
 		// Append the unique file name in the fileset to enforce the computed hash unicity
@@ -104,23 +102,24 @@ func computeFileHashes(filePaths []string) ([]mt.IDataBlock, error) {
 		// Hash computation
 		fileHash, err := hash.DefaultHashFuncParallel(fileContentName)
 		if err != nil {
-			return fileHashes, fmt.Errorf("Upload process failed on computing hash for file '%v'\nError:\n%v", filePath, err)
+			return fileHashBlocks, fmt.Errorf("Upload process failed on computing hash for file '%v'\nError:\n%v", filePath, err)
+		}
+		fileHashS := fmt.Sprintf("%x", fileHash)
+
+		if debug {
+			//log.Printf("File %3d Hash: %x File: %v", fileCounter, fileHash, fileName)
+			fmt.Printf("File %3d Hash: %v File: %v\n", fileCounter, fileHashS, fileName)
+			fileCounter += 1
 		}
 
 		// Convert
 		block := &mt.DataBlock{
-			Data: fileHash,
+			Data: []byte(fileHashS), // fileHash,
 		}
-		fileHashes = append(fileHashes, block)
-
-		if debug {
-			log.Printf("File %3d Hash: %x File: %v", fileCounter, fileHash, fileName)
-		}
-
-		fileCounter += 1
+		fileHashBlocks = append(fileHashBlocks, block)
 	}
 
-	return fileHashes, nil
+	return fileHashBlocks, nil
 }
 
 // Batch upload of local files to the Remote FS store
@@ -134,6 +133,8 @@ func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []strin
 			return fmt.Errorf("failed to batch upload the file `%v`\n%w", filePath, err)
 		}
 	}
+
+	log.Printf("%d files uploaded to the remote FS bucket '%v'", len(localFilePaths), bucketId)
 
 	return nil
 }
@@ -153,7 +154,7 @@ func confirmFilesUploadIsDoneAndCorrect(ctx *srvctx.ApiService, fileSetId string
 	if status == 500 {
 		return false, fmt.Errorf("VRFS failed at confirming that remotely stored files for fileset '%v' match with local ones (root: %x)\nStatus %d : %v", fileSetId, rootHash, status, message)
 	} else if status == 419 {
-		return false, fmt.Errorf("remotely stored files for fileset '%v' do not match with local ones (root: %x)\nStatus %d : %v", fileSetId, string(rootHash), status, message)
+		return false, fmt.Errorf("remotely stored files for fileset '%v' do not match with local ones (root: %v)\nStatus %d : %v", fileSetId, rootHash, status, message)
 	} else if status == 200 {
 		log.Printf("Remote storage of files set '%v' verified as untampered - Status %d : %v", fileSetId, status, message)
 		return true, nil

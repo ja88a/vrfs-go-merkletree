@@ -23,6 +23,9 @@
 # Files and Dirs prefixed with an underscore
 _*
 
+# Build dirs
+dist/
+
 # Files in the FS playground area
 fs-playground/fs_client_files
 fs-playground/downloaded/*

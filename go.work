@@ -8,10 +8,10 @@ go 1.21.4
 
 use (
 	./libs/config
-	./libs/rpcapi
 	./libs/logger
 	./libs/merkletree
 	./libs/redis
+	./libs/rpcapi
 
 	./client
 

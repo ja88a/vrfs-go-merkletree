@@ -73,11 +73,12 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 	return stream.SendAndClose(&pb.FileUploadResponse{FileName: fileName, Size: fileSize})
 }
 
+// Utility method for computing the file path of a storage bucket out of its ID
 func (g *FileServiceServer) computeBucketFilePath(bucketId string) string {
 	return g.cfg.FilesStorage.Location + "/" + bucketId
 }
 
-// Handle requests for retrieving the file hashes of a given storage bucket
+// Handle the request for retrieving the file hashes of a given storage bucket
 func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.BucketFileHashesRequest) (*pb.BucketFileHashesResponse, error) {
 	bucketFilePath := g.computeBucketFilePath(req.GetBucketId())
 
@@ -89,7 +90,7 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 		return nil, respErr
 	}
 
-	// Get the hash for all files
+	// Compute the hash for each file
 	fileHashes, err := futils.ComputeFileHashes(filePaths)
 	if err != nil {
 		respErr := fmt.Errorf("failed to compute file hashes for bucket '%v' (dir: %v)\n%v", req.GetBucketId(), bucketFilePath, err)
@@ -97,17 +98,20 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 		return nil, respErr
 	}
 
+	// TMP Debugging
 	if g.cfg.Log.Level == "debug" {
+		sHashList := fmt.Sprintf("Computed file hashes for bucket '%v' : \n", bucketFilePath)
 		for i := 0; i < len(fileHashes); i++ {
-			//g.l.Debug("Computed hash for file '%v' : %v", filepath.Base(filePaths[i]), fileHashes[i])
-			fmt.Printf("Computed hash for file %d '%v' : %v\n", i, filepath.Base(filePaths[i]), fileHashes[i])
+			sHashList += fmt.Sprintf("File %3d Hash: %v File: %v\n", i, fileHashes[i], filepath.Base(filePaths[i]))
 		}
+		//g.l.Debug(sHashList)
+		fmt.Println(sHashList)
 	}
 
 	return &pb.BucketFileHashesResponse{FileHashes: fileHashes}, nil
 }
 
-// Handle file download requests
+// Handle a request for a file download
 func (g *FileServiceServer) Download(req *pb.FileDownloadRequest, server pb.FileService_DownloadServer) error {
 	fileIndex := int(req.GetFileIndex())
 	bucketId := req.GetBucketId()
@@ -136,7 +140,7 @@ func (g *FileServiceServer) Download(req *pb.FileDownloadRequest, server pb.File
 
 	err = server.SendHeader(srcFile.Metadata())
 	if err != nil {
-		respMsg := fmt.Sprintf("error during sending file header of %v \n%v", srcFile.Name, err)
+		respMsg := fmt.Sprintf("error while sending the file header of %v \n%v", srcFile.Name, err)
 		g.l.Warn(respMsg)
 		return status.Error(codes.Internal, respMsg)
 	}
