@@ -66,9 +66,8 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 		}
 	}
 
-	fmt.Println(file.FilePath, fileSize)
 	fileName := filepath.Base(file.FilePath)
-	g.l.Debug("Saved file: %s, size: %d", fileName, fileSize)
+	g.l.Debug("Saved file: %s, size: %d", file.FilePath, fileSize)
 
 	return stream.SendAndClose(&pb.FileUploadResponse{FileName: fileName, Size: fileSize})
 }
@@ -104,8 +103,8 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 		for i := 0; i < len(fileHashes); i++ {
 			sHashList += fmt.Sprintf("File %3d Hash: %v File: %v\n", i, fileHashes[i], filepath.Base(filePaths[i]))
 		}
-		//g.l.Debug(sHashList)
-		fmt.Println(sHashList)
+		g.l.Debug(sHashList)
+		//fmt.Println(sHashList)
 	}
 
 	return &pb.BucketFileHashesResponse{FileHashes: fileHashes}, nil

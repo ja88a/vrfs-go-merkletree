@@ -67,15 +67,12 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	}
 
 	// Delete the client files since now stored remotely & verified
-	removeLocalFiles := false
-	if filesMatch && removeLocalFiles {
-		log.Println("Removing local files")
-		for _, filePath := range files {
-			err := os.RemoveAll(filePath)
-			if err != nil {
-				return fmt.Errorf("deletion of local files failed on file '%v'\n%w", filePath, err)
-			}
-		}
+	if filesMatch {
+		log.Printf("Removing local files in %v", localDirPath)
+		err := os.RemoveAll(localDirPath) 
+    if err != nil { 
+			return fmt.Errorf("failed to remove the uploaded local fileset %v\n%w", localDirPath, err) 
+    } 
 	}
 
 	return nil

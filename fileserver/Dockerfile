@@ -51,22 +51,23 @@ RUN --mount=type=cache,target=/go-cache --mount=type=cache,target=/gomod-cache \
     go build -o dist/vrfs-fs ./main.go
 
 
+
 ###################
 # PRODUCTION
 ###################
 
-FROM  gcr.io/distroless/base-debian12 As production
+FROM  gcr.io/distroless/static-debian12 As production
 
 WORKDIR /app
 
 # Copy the bundled code from the build stage to the production image
-COPY --chown=gorker:gorker --from=build /app-src/fileserver/dist ./
-COPY --chown=gorker:gorker --from=build /app-src/config/server-fs.yml ./config/server-fs.yml
+COPY --chown=nonroot:nonroot --from=build /app-src/fileserver/dist ./
+COPY --chown=nonroot:nonroot --from=build /app-src/config/server-fs.yml ./config/server-fs.yml
 
 # Ensure the process will run under the user 'gorker'
-#USER gorker
+# USER nonroot
 
-# Optional specification of the port to expose
+# The port to expose
 EXPOSE 9000
 
 ENTRYPOINT ["./vrfs-fs"]

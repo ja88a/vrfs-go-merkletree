@@ -41,8 +41,15 @@ docker-compose-up:
 docker-cleanup:
 	docker container rm -v vrfs-fs vrfs-api vrfs-cache && docker image rm -f  vrfs-fs vrfs-api
 
+fs-playground-cleanup:
+	rm -rf ./fs-playground/forupload/*/
+	rm -rf ./fs-playground/downloaded
+	sudo rm -rf ./fs-playground/fs_client_files
+
 demo-run-upload:
-	go run ./client -action upload -updir ./fs-playground/forupload/catyclops
+	tar -xzf ./fs-playground/forupload/catyclops.tar.gz -C ./fs-playground/forupload/
+	go run ./client -action upload \
+		-updir ./fs-playground/forupload/catyclops
 
 demo-run-download:
 	go run ./client -action download \
