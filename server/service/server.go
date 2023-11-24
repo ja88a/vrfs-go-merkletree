@@ -141,21 +141,21 @@ func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context
 
 	// Retrieve MT Proofs from the DB
 	dbKey := computeDbKeyMtProofs(in.UserId, in.FilesetId)
-	mtProofsJson, err := g.db.GetString(dbKey)
+	mtProofsDb, err := g.db.GetString(dbKey)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to retrieve MT Proofs for fileset '%v' file #%d from db \n%v", in.FilesetId, in.FileIndex, err)
 		g.l.Error(respMsg)
 		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.DataLoss, respMsg)
 	}
-	if mtProofsJson == "" {
+	if mtProofsDb == "" {
 		respMsg := fmt.Sprintf("No MerkleTree Proofs available in DB for fileset '%v' Tenant: '%v'", in.FilesetId, in.UserId)
-		g.l.Warn(respMsg)
+		g.l.Error(respMsg)
 		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.FailedPrecondition, respMsg)
 	}
 
 	// Convert the MT Proof
 	var mtProofs []*merkletree.Proof
-	err = json.Unmarshal([]byte(mtProofsJson), &mtProofs)
+	err = json.Unmarshal([]byte(mtProofsDb), &mtProofs)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to unmarshall JSON MerkleTree Proofs from DB for fileset '%v' Tenant: '%v'", in.FilesetId, in.UserId)
 		g.l.Error(respMsg)

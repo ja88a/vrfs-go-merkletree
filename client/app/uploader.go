@@ -114,7 +114,7 @@ func computeFileHashBlocks(filePaths []string) ([]mt.IDataBlock, error) {
 
 		// Convert
 		block := &mt.DataBlock{
-			Data: []byte(fileHashS), // fileHash,
+			Data: []byte(fileHashS), // TODO No string conversion but hex bytes - Remove unecessary string conversions
 		}
 		fileHashBlocks = append(fileHashBlocks, block)
 	}

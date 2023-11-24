@@ -14,7 +14,7 @@ func GenerateMerkleTree(fileHashes []string, generateProofs bool) (*mt.MerkleTre
 	var fileHashBlocks []mt.IDataBlock
 	for _, fileHash := range fileHashes {
 		block := &mt.DataBlock{
-			Data: []byte(fileHash),
+			Data: []byte(fileHash), // TODO No string conversion but hex bytes - Remove unecessary string conversions
 		}
 		fileHashBlocks = append(fileHashBlocks, block)
 	}

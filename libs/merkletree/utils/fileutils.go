@@ -30,6 +30,8 @@ func ListDirFilePaths(rootDir string) ([]string, error) {
 	return filePaths, err
 }
 
+// TODO Return [][]byte instead - Remove unecessary string conversions
+// Compute the content hash of all the provided files
 func ComputeFileHashes(filePaths []string) ([]string, error) {
 	fileCounter := 0
 	var fileHashes []string
@@ -52,7 +54,6 @@ func ComputeFileHashes(filePaths []string) ([]string, error) {
 		}
 		fileHashes = append(fileHashes, fmt.Sprintf("%x", fileHash))
 
-		//logger.Debug("File %3d Hash: %x File: %v", fileCounter, fileHash, fileName)
 		fileCounter += 1
 	}
 
