@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 )
 
@@ -84,16 +85,21 @@ func (clientCtx *ApiService) HandleUploadDoneReq(userId string, fileSetId string
 }
 
 // Handle the request to VRFS for retrieving the info to download a file and check/proove it is untampered
-func (clientCtx *ApiService) HandleDownloadFileInfoReq(userId string, fileSetId string, fileIndex int) (string, []string, error) {
+func (clientCtx *ApiService) HandleDownloadFileInfoReq(userId string, fileSetId string, fileIndex int) (string, *mt.Proof, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	resp, err := clientCtx.VrfsClient.DownloadFileInfo(ctx, &pbvrfs.DownloadFileInfoRequest{UserId: userId, FilesetId: fileSetId, FileIndex: int32(fileIndex)})
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to retrieve download info for file #%d in fileset: '%v'\n%w", fileIndex, fileSetId, err)
+		return "", nil, fmt.Errorf("failed to retrieve download info for file #%4d in fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
 
-	return resp.BucketId, resp.MtProofs, err
+	mtProof := &mt.Proof{
+		Siblings: resp.GetMtProof().GetSiblings(),
+		Path:     resp.GetMtProof().GetPath(),
+	}
+
+	return resp.BucketId, mtProof, err
 }
 
 // Handle the VRFS API ping request, to check for its availability
