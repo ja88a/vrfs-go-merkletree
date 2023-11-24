@@ -6,10 +6,10 @@ import (
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 )
 
-//
 // Build the Merkle Tree with file hashes as leaf values
 //
-func GenerateMerkleTree(fileHashes []string) (*mt.MerkleTree, error) {
+// Specify if MerkleTree proofs are also to be generated via `generateProofs`
+func GenerateMerkleTree(fileHashes []string, generateProofs bool) (*mt.MerkleTree, error) {
 	// Convert to leafs
 	var fileHashBlocks []mt.IDataBlock
 	for _, fileHash := range fileHashes {
@@ -18,9 +18,9 @@ func GenerateMerkleTree(fileHashes []string) (*mt.MerkleTree, error) {
 		}
 		fileHashBlocks = append(fileHashBlocks, block)
 	}
-	
+
 	// Generate
-	mtConfig := mt.MerkleTreeDefaultConfig()
+	mtConfig := mt.MerkleTreeDefaultConfig(generateProofs)
 
 	tree, err := mt.New(mtConfig, fileHashBlocks)
 	if err != nil {

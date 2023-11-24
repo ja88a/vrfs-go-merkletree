@@ -12,7 +12,7 @@ func main() {
 	// Configuration
 	cfg, err := config.NewConfig("server-vrfs")
 	if err != nil {
-		log.Fatalf("Config error: %s", err)
+		log.Fatalf("Config error: %v", err)
 	}
 	log.Println("VRFS API config: ", cfg)
 	

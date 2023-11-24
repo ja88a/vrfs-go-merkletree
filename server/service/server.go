@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,21 +11,22 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
+	"github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
 	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 
 	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
+	cache "github.com/ja88a/vrfs-go-merkletree/libs/db/cache"
 	logger "github.com/ja88a/vrfs-go-merkletree/libs/logger"
-	cache "github.com/ja88a/vrfs-go-merkletree/libs/redis/client"
 )
 
 // Service execution context
 type VerifiableRemoteFileStorageServer struct {
 	pb.UnimplementedVerifiableRemoteFileStorageServer
-	l        	*logger.Logger
-	cfg      	*config.Config
-	fsClient 	pbfs.FileServiceClient
-	db				*cache.CacheClient
+	l        *logger.Logger
+	cfg      *config.Config
+	fsClient pbfs.FileServiceClient
+	db       *cache.CacheClient
 }
 
 // Init the service execution context
@@ -42,13 +44,13 @@ func New(l *logger.Logger, cfg *config.Config) (*VerifiableRemoteFileStorageServ
 		l:        l,
 		cfg:      cfg,
 		fsClient: pbfs.NewFileServiceClient(fsConn),
-		db: 			kvdb,
+		db:       kvdb,
 	}, nil
 }
 
 // Handle the requests for file bucket where files can be uploaded on the Remote File Storage server
 func (g *VerifiableRemoteFileStorageServer) UploadBucket(ctx context.Context, in *pb.UploadBucketRequest) (*pb.UploadBucketResponse, error) {
-	g.l.Debug("Received bucket req from '%d' for fileset '%v'", in.UserId, in.FilesetId)
+	g.l.Debug("Received bucket req from '%v' for fileset '%v' Tenant: %v", in.UserId, in.FilesetId, in.UserId)
 	bucketId := computeBucketId(in.UserId, in.FilesetId)
 	return &pb.UploadBucketResponse{Status: 200, BucketId: bucketId}, nil
 }
@@ -66,7 +68,7 @@ func (g *VerifiableRemoteFileStorageServer) SayHello(ctx context.Context, in *pb
 
 // Handle the requests for notifying that a fileset has been uploaded, its consistency verified and confirmed to the client
 func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *pb.UploadDoneRequest) (*pb.UploadDoneResponse, error) {
-	g.l.Debug("Received UploadDone req from '%d' for fileset '%v' with MT root '%v'", in.UserId, in.FilesetId, in.FilesetMtRoot)
+	g.l.Debug("Received UploadDone req from '%v' for fileset '%v' with MT root '%v'", in.UserId, in.FilesetId, in.FilesetMtRoot)
 	bucketId := computeBucketId(in.UserId, in.FilesetId)
 
 	ctxFS, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -76,68 +78,101 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 	// Alternative: download all the bucket files and compute the file hashes here! But we'll avoid consuming unnecessary bandwidth
 	resp, err := g.fsClient.BucketFileHashes(ctxFS, &pbfs.BucketFileHashesRequest{BucketId: bucketId})
 	if err != nil {
-		respErr := fmt.Errorf("VRFS failed to retrieve files hashes from FS for fileset '%v' (%v)\n%w", in.GetFilesetId(), bucketId, err)
+		respErr := fmt.Errorf("failed to retrieve files hashes from FS for fileset '%v' (%v)\n%w", in.GetFilesetId(), bucketId, err)
 		g.l.Error(fmt.Sprint(respErr))
 		return &pb.UploadDoneResponse{Status: 500, Message: fmt.Sprint(respErr)}, respErr
 	}
 
 	// Compute the MerkleTree root
 	fileHashes := resp.GetFileHashes()
-	tree, err := GenerateMerkleTree(fileHashes)
+	tree, err := GenerateMerkleTree(fileHashes, true)
 	if err != nil {
-		respErr := fmt.Errorf("VRFS failed to compute merkletree from files hashes of fileset '%v' (%v)\n%v", in.GetFilesetId(), bucketId, err)
+		respErr := fmt.Errorf("failed to compute merkletree from files hashes of fileset '%v' (%v)\n%v", in.GetFilesetId(), bucketId, err)
 		g.l.Error(fmt.Sprint(respErr))
 		return &pb.UploadDoneResponse{Status: 500, Message: fmt.Sprint(respErr)}, respErr
 	}
+	if len(tree.Proofs) == 0 {
+		respErr := fmt.Errorf("failed to generate merkletree proofs for fileset '%v' (bucket: %v)", in.GetFilesetId(), bucketId)
+		g.l.Error(fmt.Sprint(respErr))
+		return &pb.UploadDoneResponse{Status: 500, Message: fmt.Sprint(respErr)}, nil
+	}
 
-	// Persist the MerkleTree proofs for each leaf node, for later retrieval by the client
-	//STORE_fileSetTreeProofs[in.FilesetId] = tree.Proofs
+	// Persist the MerkleTree proofs for each leaf node, for later retrieval by clients
 	dbKey := computeDbKeyMtProofs(in.UserId, in.FilesetId)
-	g.db.Set(dbKey, tree.Proofs, 0)
+	mtProofsJson, err := json.Marshal(tree.Proofs)
+	if err != nil {
+		respMsg := fmt.Sprintf("Failed to marshall MT Proofs to JSON for fileset '%v' Key: #%v\n%v", in.FilesetId, dbKey, err)
+		g.l.Error(respMsg)
+	}
+	err = g.db.Set(dbKey, mtProofsJson, 0)
+	if err != nil {
+		respMsg := fmt.Sprintf("Failed to persist MT Proofs in DB for fileset '%v' Key: #%v\n%v", in.FilesetId, dbKey, err)
+		g.l.Error(respMsg)
+		return &pb.UploadDoneResponse{Status: 500, Message: fmt.Sprint(respMsg)}, status.Error(codes.DataLoss, respMsg)
+	}
+
+	g.l.Debug("%d MerkleTree proofs persisted in DB for fileset '%v' - key: '%v'", len(tree.Proofs), in.GetFilesetId(), dbKey)
 
 	// Compare the MerkleTree roots to confirm that filesets match, or not
 	treeRoot := fmt.Sprintf("%x", tree.Root)
 	if treeRoot != in.GetFilesetMtRoot() {
 		respErr := fmt.Errorf("VRFS MerkleTree roots differ for fileset '%v' (bucket: %v) - Generated root: '%v'", in.GetFilesetId(), bucketId, treeRoot)
-		g.l.Warn(fmt.Sprint(respErr))
+		g.l.Error(fmt.Sprint(respErr))
 		return &pb.UploadDoneResponse{Status: 419, Message: fmt.Sprint(respErr)}, nil
 	}
 
-	g.l.Info("Files stored in FS bucket '%v' for the client fileset '%v' have their merkle tree root matching the client one: %v", bucketId, in.FilesetId, treeRoot)
-	
-	return &pb.UploadDoneResponse{Status: 200, Message: "MerkleTree roots match - Successful Files Upload confirmed"}, nil
+	g.l.Info("Files in FS bucket '%v' for fileset '%v' have their merkle tree root matching the client one: %v", bucketId, in.FilesetId, treeRoot)
+
+	return &pb.UploadDoneResponse{Status: 200, Message: "MerkleTree roots match - Files Upload successful"}, nil
 }
 
 // Utility method for computing the KV store's entry key for a set of MerkleTree proofs
 func computeDbKeyMtProofs(userId string, fileSetId string) string {
-	return userId +"_"+ fileSetId +"_mtproofs"
+	return userId + "_" + fileSetId + "_mtproofs"
 }
 
-// Temporary solution for testing E2E -> External Persistence MANDATORY
-//var STORE_fileSetTreeProofs = make(map[string][]*merkletree.Proof)
-
-// Get the download info to retrieve a file from the files storage server as well as 
+// Get the download info to retrieve a file from the files storage server as well as
 // the MerkleTree proofs to confirm it has not been tampered while being stored
 func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context, in *pb.DownloadFileInfoRequest) (*pb.DownloadFileInfoResponse, error) {
-	g.l.Debug("Received DownloadFileInfo req from '%d' for fileset '%v' file #%v", in.UserId, in.FilesetId, in.FileIndex)
+	g.l.Debug("Received a DownloadFileInfo req from '%v' for fileset '%v' file #%v", in.UserId, in.FilesetId, in.FileIndex)
 
+	// Target FS fileset bucket
 	bucketId := computeBucketId(in.UserId, in.FilesetId)
-	
-	//mtProofs := STORE_fileSetTreeProofs[in.FilesetId]
+
+	// Retrieve MT Proofs from the DB
 	dbKey := computeDbKeyMtProofs(in.UserId, in.FilesetId)
-	mtProofs, err := g.db.Get(dbKey)
+	mtProofsJson, err := g.db.GetString(dbKey)
 	if err != nil {
-		respMsg := fmt.Sprintf("failed to retrieve mt proofs for fileset '%v' file #%d from db \n%v", in.FilesetId, in.FileIndex, err)
+		respMsg := fmt.Sprintf("Failed to retrieve MT Proofs for fileset '%v' file #%d from db \n%v", in.FilesetId, in.FileIndex, err)
 		g.l.Error(respMsg)
-		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, status.Error(codes.DataLoss, respMsg)
+		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.DataLoss, respMsg)
 	}
-	if mtProofs == nil {
-		respMsg := fmt.Sprintf("No MerkleTree Proofs available for fileset '%v'", in.FilesetId)
+	if mtProofsJson == "" {
+		respMsg := fmt.Sprintf("No MerkleTree Proofs available in DB for fileset '%v' Tenant: '%v'", in.FilesetId, in.UserId)
 		g.l.Warn(respMsg)
-		//return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, status.Error(codes.FailedPrecondition, respMsg)
+		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.FailedPrecondition, respMsg)
 	}
 
-	// TODO Implement the Serialization of []merkletree.Proof{ Siblings: [][]byte, Path: uint32 }
-	//fileMtProofs := mtProofs[in.FileIndex]
-	return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProofs: nil}, nil
+	// Convert the MT Proof
+	var mtProofs []*merkletree.Proof
+	err = json.Unmarshal([]byte(mtProofsJson), &mtProofs)
+	if err != nil {
+		respMsg := fmt.Sprintf("Failed to unmarshall JSON MerkleTree Proofs from DB for fileset '%v' Tenant: '%v'", in.FilesetId, in.UserId)
+		g.l.Error(respMsg)
+		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.Internal, respMsg)
+	}
+	fileMtProof := mtProofs[in.FileIndex]
+
+	if g.cfg.Level == "debug" {
+		for index, sibling := range fileMtProof.Siblings {
+			g.l.Debug("Sibling #%d Hex: '%x' for file %d of '%v' (%v)", index, sibling, in.FileIndex, in.FilesetId, in.UserId)
+		}
+	}
+
+	pbMtProof := &pb.MTProof{
+		Siblings: fileMtProof.Siblings,
+		Path:     fileMtProof.Path,
+	}
+
+	return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: pbMtProof}, nil
 }

@@ -8,7 +8,7 @@ replace github.com/ja88a/vrfs-go-merkletree/libs/logger v0.0.0 => ../libs/logger
 
 replace github.com/ja88a/vrfs-go-merkletree/libs/rpcapi v0.0.0 => ../libs/rpcapi
 
-replace github.com/ja88a/vrfs-go-merkletree/libs/redis v0.0.0 => ../libs/redis
+replace github.com/ja88a/vrfs-go-merkletree/libs/db v0.0.0 => ../libs/db
 
 replace github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0 => ../libs/merkletree
 
@@ -20,7 +20,7 @@ require github.com/ja88a/vrfs-go-merkletree/libs/logger v0.0.0
 
 require (
 	github.com/ja88a/vrfs-go-merkletree/libs/merkletree v0.0.0
-	github.com/ja88a/vrfs-go-merkletree/libs/redis v0.0.0
+	github.com/ja88a/vrfs-go-merkletree/libs/db v0.0.0
 	google.golang.org/grpc v1.59.0
 )
 
