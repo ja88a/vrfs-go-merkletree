@@ -6,7 +6,7 @@ setup:
 	go work use ./libs/merkletree
 	go work use ./libs/config
 	go work use ./libs/logger
-	go work use ./libs/redis
+	go work use ./libs/db
 	go work use ./fileserver
 	go work use ./server
 	go work use ./client

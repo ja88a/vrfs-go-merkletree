@@ -1,9 +1,9 @@
 version: '3.8'
 
 volumes:
-  db:
+  db_data:
     driver: local
-  cache:
+  cache_data:
     driver: local
   fserver_data: {}
   vrfs_data: {}
@@ -14,13 +14,13 @@ networks:
 
 services:
 
-  # db:
+  # vrfs-db:
   #   image: mongo:7.0.3
   #   restart: unless-stopped
   #   ports:
   #     - '27017:27017'
   #   volumes:
-  #     - db:/data/db
+  #     - db_data:/data/db
   #   networks:
   #     - vrfs-network
 
@@ -32,7 +32,7 @@ services:
       - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning --requirepass hSy2TiQFw8Yyzs4oxqjzwvoM
     volumes: 
-      - cache:/data
+      - cache_data:/data
     networks:
       - vrfs-network
 
@@ -44,13 +44,13 @@ services:
       target: production
     image: vrfs-fs
     restart: unless-stopped
-    depends_on:
-      - vrfs-cache
     ports:
       - 9000:9000
     environment:
       GRPC_PORT: ':9000'
       LOG_LEVEL: 'info'
+    depends_on:
+      - vrfs-cache
     links:
       - vrfs-cache
     volumes:
@@ -75,7 +75,7 @@ services:
       GRPC_PORT: ':50051'
       LOG_LEVEL: 'info'
       REDIS_ENDPOINT: 'vrfs-cache:6379'
-      REDIS_PASSWORD: hSy2TiQFw8Yyzs4oxqjzwvoM
+      REDIS_PASSWORD: 'hSy2TiQFw8Yyzs4oxqjzwvoM'
       FSAPI_ENDPOINT: 'vrfs-fs:9000'
     links:
       - vrfs-cache
