@@ -9,14 +9,14 @@ import (
 
 	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
+	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 	hash "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/hash"
-	mtfiles "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
 )
 
 // Initiate the verified upload protocol of all files found under the specified local directory path
 func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	// Get the list of available local file paths
-	files, err := mtfiles.ListDirFilePaths(localDirPath)
+	files, err := mtutils.ListDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {
 		return fmt.Errorf("no local files found in dir '%v'\n%w", localDirPath, err)
 	}
@@ -30,24 +30,27 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	}
 
 	// Build the Merkle Tree with file hashes as leaf values
-	mtConfig := mt.MerkleTreeDefaultConfig()
+	mtConfig := mt.MerkleTreeDefaultConfig(false)
 	tree, err := mt.New(mtConfig, fileHashes)
 	if err != nil {
 		return fmt.Errorf("failure while computing the merkletree for files in '%v'\n%w", localDirPath, err)
 	}
 
 	// Obtain the MerkleTree root hash
-	rootHash := fmt.Sprintf("%x", tree.Root)
-	if rootHash == "" {
+	// if DEBUG {
+	// 	fmt.Printf()
+	// }
+	rootHashS := fmt.Sprintf("%x", tree.Root)
+	if rootHashS == "" {
 		return fmt.Errorf("invalid empty MerkleTree root for fileset in '%v'", localDirPath)
 	}
-	log.Printf("Computed fileset MerkleTree root: %v", rootHash)
+	log.Printf("Computed fileset MerkleTree root: %v", rootHashS)
 
 	// Request to VRFS for a bucket into which files can be remotely stored
-	fileSetId := "fs-" + rootHash
+	fileSetId := FILESET_PREFIX + rootHashS
 	status, bucketId, err := ctx.HandleFileBucketReq(srvctx.UserMock, fileSetId)
 	if err != nil || status < 0 {
-		return fmt.Errorf("missing a bucket ref to upload the fileset '%v'\n%w", rootHash, err)
+		return fmt.Errorf("missing a bucket ref to upload the fileset '%v'\n%w", rootHashS, err)
 	}
 	log.Printf("Bucket ID '%v' (%d) available for uploading files", bucketId, status)
 
@@ -58,9 +61,9 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	}
 
 	// Confirm from VRFS that the files have been correctly uploaded, by comparing the file hashes' MerkleTree roots
-	filesMatch, err := confirmFilesUploadIsDoneAndCorrect(ctx, fileSetId, rootHash)
+	filesMatch, err := confirmFilesUploadIsDoneAndCorrect(ctx, fileSetId, rootHashS)
 	if err != nil {
-		return fmt.Errorf("failed to verify the remotely stored files for fileset '%v' with MT root %v\n%w", fileSetId, rootHash, err)
+		return fmt.Errorf("failed to verify the remotely stored files for fileset '%v' with MT root %v\n%w", fileSetId, rootHashS, err)
 	}
 	if !filesMatch {
 		return fmt.Errorf("remotely stored files could not be verified: failure or mismatch - bucket '%v'\n%w", bucketId, err)
@@ -69,10 +72,10 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	// Delete the client files since now stored remotely & verified
 	if filesMatch {
 		log.Printf("Removing local files in %v", localDirPath)
-		err := os.RemoveAll(localDirPath) 
-    if err != nil { 
-			return fmt.Errorf("failed to remove the uploaded local fileset %v\n%w", localDirPath, err) 
-    } 
+		err := os.RemoveAll(localDirPath)
+		if err != nil {
+			return fmt.Errorf("failed to remove the uploaded local fileset %v\n%w", localDirPath, err)
+		}
 	}
 
 	return nil
@@ -103,7 +106,7 @@ func computeFileHashBlocks(filePaths []string) ([]mt.IDataBlock, error) {
 		}
 		fileHashS := fmt.Sprintf("%x", fileHash)
 
-		if debug {
+		if DEBUG {
 			//log.Printf("File %3d Hash: %x File: %v", fileCounter, fileHash, fileName)
 			fmt.Printf("File %3d Hash: %v File: %v\n", fileCounter, fileHashS, fileName)
 			fileCounter += 1
@@ -123,8 +126,7 @@ func computeFileHashBlocks(filePaths []string) ([]mt.IDataBlock, error) {
 func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []string) error {
 	upService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize)
 
-	// Loop over the local files
-	// TODO handle the parallel uploads of files
+	// Loop over the local files to trigger their parallel upload
 	for _, filePath := range localFilePaths {
 		if err := upService.SendFile(bucketId, filePath); err != nil {
 			return fmt.Errorf("failed to batch upload the file `%v`\n%w", filePath, err)

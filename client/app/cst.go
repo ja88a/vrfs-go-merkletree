@@ -1,4 +1,5 @@
 package app
 
+const DEBUG = false
 
-const debug = false
+const FILESET_PREFIX = "fs-"
