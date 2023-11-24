@@ -188,12 +188,13 @@ Overview of the VRFS Service main components:
 
 ## Development status
 
-The depicted files' verification protocol on client side has not been finalized yet.
-The remaining key challenge is about the efficient serialization of the MerkleTree Proofs 
-to be communicated to clients on every request for a file download info and enable its verification, 
-as well as for their DB storage.
+The depicted files' verification protocol is implemented finalized.
 
-A persistence layer for the VRFS Service is implemented via a distributed memory cache solution, using [Redis](https://redis.com/glossary/distributed-caching/). An additional DB ORM integration could be required, a NoSQL DB such as Mongo could do the job.
+Efficient serialization of the MerkleTree Proofs might be further improved when they are persisted in the DB, on fileset upload verification/confirmation, then retrieved and communicated to clients on every file download info requests for later verification.
+
+A persistence layer for the VRFS Service is implemented via a distributed memory cache solution, using [Redis](https://redis.com/glossary/distributed-caching/). 
+
+An additional DB ORM integration could be required, a NoSQL DB such as Mongo could do the job.
 
 The computation models and their settings for the backbone Merkle Tree reference is to be 
 further refined and benchmarked, per the integration use case(s) and corresponding optimization 
@@ -202,7 +203,6 @@ requirements for ad-hoc computation, storage and transport.
 For the file hashes computation, constituing the MarkleTree leaf values, the SHA2-256 hashing function is used (NIS, 64 characters long for every string).
 Alternative file hashing functions might be considered to adapt and/or optimize the computations runtime.
 Notice the fact that the client and the FS server require using the same hashing function on files since both build a Merkle Tree out of the file hashes.
-
 
 
 ## Solution Readiness - Status
