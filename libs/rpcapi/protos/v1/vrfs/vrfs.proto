@@ -32,19 +32,25 @@ message HelloReply {
 
 // The request message for a file bucket where to upload files, if granted
 message UploadBucketRequest {
-  string userId = 1;
+  // Tenant ID to which a file storage bucket is to be associated
+  string user_id = 1;
+  // The fileset ID for which a file storage bucket is requested
   string fileset_id = 2;
 }
 
 // The response message to a file bucket request
 message UploadBucketResponse {
+  // Confirmation code of the bucket creation process
   int32 status = 1;
+  // The created file storage bucket ID where the fileset can be uploaded
   string bucket_id = 2;
 }
 
 // The request message for confirming files have been uploaded to a remote file storage
 message UploadDoneRequest {
-  string userId = 1;
+  // Tenant ID to which the fileset belongs
+  string user_id = 1;
+  // ID of the fileset to which the file belongs
   string fileset_id = 2;
   // The MerkleTree root hash of the fileset, generated & kept on client side
   string fileset_mt_root = 3;
@@ -52,20 +58,34 @@ message UploadDoneRequest {
 
 // The request message for confirming files have been uploaded to a remote file storage
 message UploadDoneResponse {
+  // Confirmation code of the upload process to the VRFS & FS services
   int32 status = 1;
+  // Optional informative message extending the status code
   string message = 2;
 }
 
 // The request message for retrieving the necessary info to download and verify the consistency of a file
 message DownloadFileInfoRequest {
+  // Tenant ID to which the fileset belongs
   string user_id = 1;
+  // ID of the fileset to which the file belongs
   string fileset_id = 2;
+  // Index number of the file within the fileset
   int32 file_index = 3;
 }
 
 // The response message for the download of a file and its consistency check based on MerkleTree proofs
 message DownloadFileInfoResponse {
+  // The FS bucket ID from which the file can be downloaded
   string bucket_id = 1;
-  // The MerkleTree proofs to confirm the expected file hash consistency
-  repeated string mt_proofs = 2;
+  // The MerkleTree proof to confirm the expected file hash consistency once downloaded
+  MTProof mt_proof = 2;
+}
+
+// A Merkle Tree proof
+message MTProof {
+  // Sibling nodes to the Merkle Tree path of the data block
+  repeated bytes siblings = 1;
+  // Path variable indicating whether the neighbor is on the left or right
+  uint32 path = 2;
 }
