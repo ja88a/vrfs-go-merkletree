@@ -14,7 +14,7 @@ import (
 	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
 	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
 	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
-	futils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/files"
+	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 	logger "github.com/ja88a/vrfs-go-merkletree/libs/logger"
 )
 
@@ -82,7 +82,7 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 	bucketFilePath := g.computeBucketFilePath(req.GetBucketId())
 
 	// List the file paths
-	filePaths, err := futils.ListDirFilePaths(bucketFilePath)
+	filePaths, err := mtutils.ListDirFilePaths(bucketFilePath)
 	if err != nil {
 		respErr := fmt.Errorf("failed to list files in bucket '%v' (dir: %v)\n%v", req.GetBucketId(), bucketFilePath, err)
 		g.l.Error(fmt.Sprint(respErr))
@@ -90,7 +90,7 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 	}
 
 	// Compute the hash for each file
-	fileHashes, err := futils.ComputeFileHashes(filePaths)
+	fileHashes, err := mtutils.ComputeFileHashes(filePaths)
 	if err != nil {
 		respErr := fmt.Errorf("failed to compute file hashes for bucket '%v' (dir: %v)\n%v", req.GetBucketId(), bucketFilePath, err)
 		g.l.Error(fmt.Sprint(respErr))
@@ -118,7 +118,7 @@ func (g *FileServiceServer) Download(req *pb.FileDownloadRequest, server pb.File
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("Valid bucket ID (%v) and file index (%d) are required", bucketId, fileIndex))
 	}
 	bucketFilePath := g.computeBucketFilePath(bucketId)
-	filePaths, err := futils.ListDirFilePaths(bucketFilePath)
+	filePaths, err := mtutils.ListDirFilePaths(bucketFilePath)
 	if err != nil {
 		respMsg := fmt.Sprintf("Could not find files in '%v'\n%v", bucketFilePath, err)
 		g.l.Warn(respMsg)

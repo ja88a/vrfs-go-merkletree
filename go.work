@@ -4,13 +4,13 @@ go 1.21.4
 // replace github.com/ja88a/vrfs-go-merkletree/libs/rpcapi v0.0.0 => ./libs/rpcapi
 // replace github.com/ja88a/vrfs-go-merkletree/libs/logger v0.0.0 => ./libs/logger
 // replace github.com/ja88a/vrfs-go-merkletree/libs/config v0.0.0 => ./libs/config
-// replace github.com/ja88a/vrfs-go-merkletree/libs/redis v0.0.0 => ./libs/redis
+// replace github.com/ja88a/vrfs-go-merkletree/libs/db v0.0.0 => ./libs/db
 
 use (
 	./libs/config
 	./libs/logger
 	./libs/merkletree
-	./libs/redis
+	./libs/db
 	./libs/rpcapi
 
 	./client
