@@ -28,10 +28,10 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 
 	// 2. Save the file locally, in the client download dir
 	// Initiate the file download process from the File Storage server
-	ftService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize)
+	ftService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize, DEBUG)
 	dFile, err := ftService.DownloadFile(bucketId, fileIndex)
 	if err != nil {
-		return fmt.Errorf("download process of file %d in FS bucket '%v'\n%w", fileIndex, bucketId, err)
+		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
 
 	localDirPath := computeFilesetDownloadDir(ctx, fileSetId)
@@ -56,16 +56,17 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 	if err != nil {
 		return fmt.Errorf("failed to compute hash for file '%v' \n%w", localFilePath, err)
 	}
-	log.Printf("File '%v' Downloaded. Hash: %v", localFilePath, fileHashes[0])
+	log.Printf("File '%v' Downloaded. Hash: %x", localFilePath, fileHashes[0])
 
-	rootHashS := strings.TrimPrefix(fileSetId, FILESET_PREFIX) // Trick for avoiding the local storage of the fileset's MT root
+	// Trick for avoiding the local storage of the fileset's MT root by the client
+	rootHashS := strings.TrimPrefix(fileSetId, FILESET_PREFIX)
 	rootHash, err := hex.DecodeString(rootHashS)
 	if err != nil {
-		return fmt.Errorf("failed to convert root hash to hex '%v'", rootHashS)
+		return fmt.Errorf("failed to convert root hash to hex '%v'\n%w", rootHashS, err)
 	}
 
 	fileBlock := &mt.DataBlock{
-		Data: []byte(fileHashes[0]), // TODO No string conversion but hex bytes - Remove unecessary string conversions
+		Data: fileHashes[0],
 	}
 	mtConfig := mt.MerkleTreeDefaultConfig(false)
 	fileValid, err := mt.Verify(fileBlock, mtProof, rootHash, mtConfig)
@@ -73,9 +74,9 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 		return fmt.Errorf("failed to verify the downloaded file '%v' \n%w", localFilePath, err)
 	}
 	if !fileValid {
-		return fmt.Errorf("downloaded file '%v' has failed the verification process - Root: '%v' ProofSiblings: %d Hash: '%v'", localFilePath, rootHashS, len(mtProof.Siblings), fileHashes[0])
+		return fmt.Errorf("downloaded file '%v' fails the verification process - Root: %x  ProofSiblings: %d  Hash: %x", localFilePath, rootHash, len(mtProof.Siblings), fileHashes[0])
 	} 
-	log.Printf("Downloaded file '%v' is successfully verified as untampered!", localFilePath)
+	log.Printf("Downloaded file '%v' Successfully verified as untampered!", localFilePath)
 
 	return nil
 }
