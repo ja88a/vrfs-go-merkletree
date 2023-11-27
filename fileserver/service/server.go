@@ -79,6 +79,7 @@ func (g *FileServiceServer) computeBucketFilePath(bucketId string) string {
 
 // Handle the request for retrieving the file hashes of a given storage bucket
 func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.BucketFileHashesRequest) (*pb.BucketFileHashesResponse, error) {
+	g.l.Info("Handle request for the file hashes of bucket '%v'", req.GetBucketId())
 	bucketFilePath := g.computeBucketFilePath(req.GetBucketId())
 
 	// List the file paths
@@ -97,21 +98,22 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 		return nil, respErr
 	}
 
-	// TMP Debugging
-	if g.cfg.Log.Level == "debug" {
-		sHashList := fmt.Sprintf("Computed file hashes for bucket '%v' : \n", bucketFilePath)
-		for i := 0; i < len(fileHashes); i++ {
-			sHashList += fmt.Sprintf("File %3d Hash: %v File: %v\n", i, fileHashes[i], filepath.Base(filePaths[i]))
-		}
-		g.l.Debug(sHashList)
-		//fmt.Println(sHashList)
-	}
+	// Debugging
+	// if g.cfg.Log.Level == "debug" {
+	// 	sHashList := fmt.Sprintf("Computed file hashes for bucket '%v' : \n", bucketFilePath)
+	// 	for i := 0; i < len(fileHashes); i++ {
+	// 		sHashList += fmt.Sprintf("\nFile %3d Hash: %x File: %v\n", i, fileHashes[i], filepath.Base(filePaths[i]))
+	// 	}
+	// 	g.l.Debug(sHashList)
+	// }
 
 	return &pb.BucketFileHashesResponse{FileHashes: fileHashes}, nil
 }
 
 // Handle a request for a file download
 func (g *FileServiceServer) Download(req *pb.FileDownloadRequest, server pb.FileService_DownloadServer) error {
+	g.l.Info("Handle download request: bucket '%v' file #%d", req.GetBucketId(), req.FileIndex)
+
 	fileIndex := int(req.GetFileIndex())
 	bucketId := req.GetBucketId()
 	if bucketId == "" || fileIndex < 0 {
@@ -120,7 +122,7 @@ func (g *FileServiceServer) Download(req *pb.FileDownloadRequest, server pb.File
 	bucketFilePath := g.computeBucketFilePath(bucketId)
 	filePaths, err := mtutils.ListDirFilePaths(bucketFilePath)
 	if err != nil {
-		respMsg := fmt.Sprintf("Could not find files in '%v'\n%v", bucketFilePath, err)
+		respMsg := fmt.Sprintf("No files found in '%v'\n%v", bucketFilePath, err)
 		g.l.Warn(respMsg)
 		return status.Error(codes.NotFound, respMsg)
 	}

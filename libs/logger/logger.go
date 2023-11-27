@@ -8,23 +8,23 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Interface -.
+// Interface
 type Interface interface {
 	Debug(message interface{}, args ...interface{})
-	Info(message string, args ...interface{})
-	Warn(message string, args ...interface{})
+	Info(message interface{}, args ...interface{})
+	Warn(message interface{}, args ...interface{})
 	Error(message interface{}, args ...interface{})
 	Fatal(message interface{}, args ...interface{})
 }
 
-// Logger -.
+// Logger
 type Logger struct {
 	logger *zerolog.Logger
 }
 
 var _ Interface = (*Logger)(nil)
 
-// New -.
+// New
 func New(level string) *Logger {
 	var l zerolog.Level
 
@@ -51,27 +51,27 @@ func New(level string) *Logger {
 	}
 }
 
-// Debug -.
+// Debug
 func (l *Logger) Debug(message interface{}, args ...interface{}) {
 	l.msg("debug", message, args...)
 }
 
-// Info -.
-func (l *Logger) Info(message string, args ...interface{}) {
+// Info
+func (l *Logger) Info(message interface{}, args ...interface{}) {
 	l.msg("info", message, args...)
 }
 
-// Warn -.
-func (l *Logger) Warn(message string, args ...interface{}) {
+// Warn
+func (l *Logger) Warn(message interface{}, args ...interface{}) {
 	l.msg("warn", message, args...)
 }
 
-// Error -.
+// Error
 func (l *Logger) Error(message interface{}, args ...interface{}) {
 	l.msg("error", message, args...)
 }
 
-// Fatal -.
+// Fatal
 func (l *Logger) Fatal(message interface{}, args ...interface{}) {
 	l.msg("fatal", message, args...)
 
