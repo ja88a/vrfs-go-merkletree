@@ -36,7 +36,7 @@ message BucketFileHashesRequest {
 
 // The response message for the list of file hashes, sorted per the lexical order of the bucket's file names
 message BucketFileHashesResponse {
-  repeated string file_hashes = 2;
+  repeated bytes file_hashes = 1;
 }
 
 // The request message for downloading a file
@@ -47,5 +47,5 @@ message FileDownloadRequest {
 
 // The streamed response message for a file download
 message FileDownloadResponse {
-  bytes chunk = 2;
+  bytes chunk = 1;
 }
