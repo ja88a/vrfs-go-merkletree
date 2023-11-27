@@ -40,10 +40,8 @@ message UploadBucketRequest {
 
 // The response message to a file bucket request
 message UploadBucketResponse {
-  // Confirmation code of the bucket creation process
-  int32 status = 1;
   // The created file storage bucket ID where the fileset can be uploaded
-  string bucket_id = 2;
+  string bucket_id = 1;
 }
 
 // The request message for confirming files have been uploaded to a remote file storage
@@ -52,8 +50,8 @@ message UploadDoneRequest {
   string user_id = 1;
   // ID of the fileset to which the file belongs
   string fileset_id = 2;
-  // The MerkleTree root hash of the fileset, generated & kept on client side
-  string fileset_mt_root = 3;
+  // The MerkleTree root hash of the fileset, generated & stored by the client
+  bytes mt_root = 3;
 }
 
 // The request message for confirming files have been uploaded to a remote file storage
