@@ -1,0 +1,11 @@
+{
+    "gopls": {
+
+    },
+    "conventionalCommits.scopes": [
+        "client",
+        "api",
+        "fs",
+        "libs"
+    ]
+}
