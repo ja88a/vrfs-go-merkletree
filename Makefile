@@ -54,5 +54,5 @@ demo-run-upload:
 demo-run-download:
 	go run ./client -action download \
 		-downdir ./fs-playground/downloaded \
-		-fileset fs-c32c7fac4685a43c2e7806d13bdd737a12f56322a65d23e29d81ae0a34a13019 \
+		-fileset fs-10f652e11f5e2f799481ed02d45a74bcf3d62dea3200ad08120bba43c242f5fb \
 		-index 5
