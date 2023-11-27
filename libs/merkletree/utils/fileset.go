@@ -6,7 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ja88a/vrfs-go-merkletree/libs/merkletree/hash"
+	hash "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/hash"
+	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 )
 
 // List all files (their path) found in the specified directory and its subdirs.
@@ -30,11 +31,9 @@ func ListDirFilePaths(rootDir string) ([]string, error) {
 	return filePaths, err
 }
 
-// TODO Return [][]byte instead - Remove unecessary string conversions
-// Compute the content hash of all the provided files
-func ComputeFileHashes(filePaths []string) ([]string, error) {
-	fileCounter := 0
-	var fileHashes []string
+// Compute the file content hash of all the provided file paths
+func ComputeFileHashes(filePaths []string) ([][]byte, error) {
+	var fileHashes [][]byte
 
 	// Loop over the dir files
 	for _, filePath := range filePaths {
@@ -44,20 +43,42 @@ func ComputeFileHashes(filePaths []string) ([]string, error) {
 		}
 		
 		// Append the unique file name in the fileset to enforce the computed hash unicity
+		// e.g. prevent from the conflict between same file content being part of the parent and/or subdirs
 		fileName := filepath.Base(filePath)
-		fileContentName := append(fileContent, fileName...)
+		fileContentWName := append(fileContent, fileName...)
 
 		// Hash computation
-		fileHash, err := hash.DefaultHashFuncParallel(fileContentName)
+		fileHash, err := hash.DefaultHashFuncParallel(fileContentWName)
 		if err != nil {
 			return nil, fmt.Errorf("upload process failed on computing hash for file '%v'\n%w", filePath, err)
 		}
-		fileHashes = append(fileHashes, fmt.Sprintf("%x", fileHash))
-
-		fileCounter += 1
+		fileHashes = append(fileHashes, fileHash)
 	}
 
 	return fileHashes, nil
+}
+
+// Build the Merkle Tree with file hashes as leaf values
+//
+// Specify if MerkleTree proofs are also to be generated via `generateProofs`
+func GenerateMerkleTree(fileHashes [][]byte, generateProofs bool) (*mt.MerkleTree, error) {
+	// Convert to leaf blocks
+	var fileHashBlocks []mt.IDataBlock
+	for _, fileHash := range fileHashes {
+		block := &mt.DataBlock{
+			Data: fileHash,
+		}
+		fileHashBlocks = append(fileHashBlocks, block)
+	}
+
+	// Generate Merkle Tree
+	mtConfig := mt.MerkleTreeDefaultConfig(generateProofs)
+	tree, err := mt.New(mtConfig, fileHashBlocks)
+	if err != nil {
+		return nil, fmt.Errorf("failure while computing merkletree from file hashes (%d) \n%w", len(fileHashes), err)
+	}
+
+	return tree, nil
 }
 
 // Utility method for extracting the longest common prefix among a set of provided strings
