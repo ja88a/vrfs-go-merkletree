@@ -6,9 +6,11 @@
 
 The Verifiable Remote File Storage service aims at checking the consistency of uploaded then downloaded files, based on file hashes and their MerkleTree proofs.
 
-This is the mono repository for the Go-based implementation of 2 backend services and 1 CLI client.
+This is the mono repository for the Go-based implementation of 2 backend services and 1 client CLI.
 
 The gRPC protocol is used for optimal client-server and server-to-server communications.
+
+A complete docker compose setup enables an easy local build, deployment & run.
 
 
 ### Protocol Overview
@@ -18,7 +20,7 @@ The overall implemented protocol for uploading or downloading local files to the
 ![Implemented Protocol Overview](./doc/assets/VRFS_overview-protocol_v1.png)
 
 Key principles:
-* The VRFS Service handles the creds/access to the [external] FS service
+* The VRFS service handles the creds/access to the [external] FS service
 * Files are directly uploaded to & downloaded from the FS service
 * VRFS retrieves the file hashes from the FS server, for building its Merkle Tree and store corresponding proofs
 
@@ -35,9 +37,9 @@ This protocol results in:
 * 3 steps to retrieve & verify a file - 1 client command: 1 VRFS API & 1 file download requests
 
 3 main components have been implemented:
-1. The VRFS API Service - The core component of this protocol, exposing a gRPC API
+1. The VRFS API service - The core component of this protocol, exposing a gRPC API
 2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually. It also supports the retrieval of the stored files' hashes
-3. A CLI client to execute the 2 main upload and download operations, along with MerkleProof-based file hash verifications
+3. A client CLI to execute the 2 main upload and download operations, along with MerkleProof-based file hash verifications
 
 
 ## Instructions
@@ -116,8 +118,12 @@ Demo scripts for running client commands are available in the [Makefile](./Makef
 A default playground directory [fs-playground](./fs-playground/) with sample files is provided, for testing files' uploads and downloads.
 
 ```shell
-# Store local files remotely
+# Start the backend services
+$ make docker-compose-up
+
+# Upload local files remotely
 $ make demo-run-upload
+
 # Download a file
 $ make demo-run-download
 ```
@@ -128,15 +134,17 @@ $ make demo-run-download
 ```shell
 # Build exec Client CLI
 go build ./client -o ./dist/vrfs-client
+
 # Build exec VRFS Server
 go build ./server -o ./dist/vrfs-server
+
 # Build exec VRFS FileServer
 go build ./fileserver -o ./dist/vrfs-fs
 ```
 
 ### Modules Runtime Config
 
-The CLI client is configurable via the command parameters it exposes. Its settings and default values are defined in the client [`main.go`](./client/main.go).
+The client CLI is configurable via the command parameters it exposes. Its settings and default values are defined in the client [`main.go`](./client/main.go).
 
 The VRFS & FS server configurations rely on their dedicated `yaml` config file available in [config](./config), those parameters can be overridden via optional `.env` files or via runtime environment variables. 
 Refer to the [cleanenv](https://github.com/ilyakaznacheev/cleanenv) solution and its integration made in the utility [`libs/config`](./libs/config.go).
@@ -181,18 +189,18 @@ Overview of the considered overall, scalable solution to be implemented:
 
 ![VRFS Solution Overview](./doc/assets/VRFS_overview-solution_v1b.png)
 
-Overview of the VRFS Service main components:
+Overview of the VRFS service main components:
 
 ![VRFS Service Overview](./doc/assets/VRFS_overview-service_v1.png)
 
 
 ## Development status
 
-The depicted files' verification protocol is implemented finalized.
+The depicted files' upload, download & verification protocol is implemented and finalized.
 
 Efficient serialization of the MerkleTree Proofs might be further improved when they are persisted in the DB, on fileset upload verification/confirmation, then retrieved and communicated to clients on every file download info requests for later verification.
 
-A persistence layer for the VRFS Service is implemented via a distributed memory cache solution, using [Redis](https://redis.com/glossary/distributed-caching/). 
+A persistence layer for the VRFS service is implemented via a distributed memory cache solution, using [Redis](https://redis.com/glossary/distributed-caching/). 
 
 An additional DB ORM integration could be required, a NoSQL DB such as Mongo could do the job.
 
@@ -260,12 +268,12 @@ Actual integration of the semver solution is to be pushed further.
 
 #### Automated Tests
 
-Automated unit and integration testing have not been addressed yet.
+Automated unit and integration tests are not addressed in this repository.
 
 E2E tests & a continuous integration / deployment flows should be implemented.
 
 #### CLI Client
 
-A Cobra-like integration should be considered if the CLI client is given a priority.
+A Cobra-like integration should be considered if the client CLI is given a priority.
 
-A logs manager might also be integrated for prettier outputs.
+A logs manager on client side might also be integrated for prettier outputs.
