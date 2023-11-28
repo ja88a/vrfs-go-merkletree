@@ -32,8 +32,8 @@ RUN go env -w GOCACHE=/go-cache
 RUN go env -w GOMODCACHE=/gomod-cache
 
 # Copy Go modules and dependencies to image
-COPY ./libs ./libs
 COPY ./server ./server
+COPY ./libs ./libs
 COPY ./config ./config
 
 # Switch to the VRFS module dir

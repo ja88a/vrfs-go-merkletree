@@ -24,10 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type FileServiceClient interface {
 	// Initiate a File Upload
 	Upload(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadClient, error)
-
 	// Retrieve the list of all file hashes for a given bucket / fileset storage
 	BucketFileHashes(ctx context.Context, in *BucketFileHashesRequest, opts ...grpc.CallOption) (*BucketFileHashesResponse, error)
-	
 	// Initiate the download of a file content, part of a given bucket
 	Download(ctx context.Context, in *FileDownloadRequest, opts ...grpc.CallOption) (FileService_DownloadClient, error)
 }

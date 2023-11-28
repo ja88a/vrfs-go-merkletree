@@ -122,7 +122,7 @@ func (s *FTService) SendFile(bucketId string, filePath string) error {
 
 	go func(s *FTService) {
 		if err := s.upload(ctx, cancel, bucketId, filePath); err != nil {
-			log.Fatalf("Upload of file '%v' to bucket '%v' has failed\n%v", filePath, bucketId, err)
+			log.Fatalf("Upload of file '%v' to FS bucket '%v' has failed\n%v", filePath, bucketId, err)
 			cancel()
 		}
 	}(s)
