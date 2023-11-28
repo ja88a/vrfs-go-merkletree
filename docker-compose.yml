@@ -3,8 +3,6 @@ version: '3.8'
 volumes:
   db_data:
     driver: local
-  cache_data:
-    driver: local
   fserver_data: {}
   vrfs_data: {}
 
@@ -13,52 +11,7 @@ networks:
     driver: bridge
 
 services:
-
-  # vrfs-db:
-  #   image: mongo:7.0.3
-  #   restart: unless-stopped
-  #   ports:
-  #     - '27017:27017'
-  #   volumes:
-  #     - db_data:/data/db
-  #   networks:
-  #     - vrfs-network
-
-  vrfs-cache:
-    container_name: vrfs-cache
-    image: redis:7.2.3-alpine3.18
-    restart: unless-stopped
-    ports:
-      - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning --requirepass hSy2TiQFw8Yyzs4oxqjzwvoM
-    volumes: 
-      - cache_data:/data
-    networks:
-      - vrfs-network
-
-  vrfs-fs:
-    container_name: vrfs-fs
-    build:
-      context: .
-      dockerfile: ./fileserver/Dockerfile
-      target: production
-    image: vrfs-fs
-    restart: unless-stopped
-    ports:
-      - 9000:9000
-    environment:
-      GRPC_PORT: ':9000'
-      LOG_LEVEL: 'info'
-    depends_on:
-      - vrfs-cache
-    links:
-      - vrfs-cache
-    volumes:
-      - ./fs-playground/fs_client_files:/app/fs-playground/fs_client_files:rw
-      - fserver_data:/fserver
-    networks:
-      - vrfs-network
-
+  # VRFS API server
   vrfs-api:
     container_name: vrfs-api
     build:
@@ -84,3 +37,51 @@ services:
       - vrfs_data:/vrfs:rw
     networks:
       - vrfs-network
+
+  # File Storage server
+  vrfs-fs:
+    container_name: vrfs-fs
+    build:
+      context: .
+      dockerfile: ./fileserver/Dockerfile
+      target: production
+    image: vrfs-fs
+    restart: unless-stopped
+    ports:
+      - 9000:9000
+    environment:
+      GRPC_PORT: ':9000'
+      LOG_LEVEL: 'info'
+    depends_on:
+      - vrfs-cache
+    links:
+      - vrfs-cache
+    volumes:
+      - ./fs-playground/fs_client_files:/app/fs-playground/fs_client_files:rw
+      - fserver_data:/fserver
+    networks:
+      - vrfs-network
+
+  # DB KV caching
+  vrfs-cache:
+    container_name: vrfs-cache
+    image: redis:7.2.3-alpine3.18
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass hSy2TiQFw8Yyzs4oxqjzwvoM
+    volumes: 
+      - db_data:/data/cache
+    networks:
+      - vrfs-network
+
+  # DB
+  # vrfs-db:
+  #   image: mongo:7.0.3
+  #   restart: unless-stopped
+  #   ports:
+  #     - '27017:27017'
+  #   volumes:
+  #     - db_data:/data/db
+  #   networks:
+  #     - vrfs-network
