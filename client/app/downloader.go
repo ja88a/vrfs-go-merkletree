@@ -17,7 +17,7 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
 
 	// 1. Retrieve necessary download & verification proofs from VRFS
-	bucketId, mtProof, err := ctx.HandleDownloadFileInfoReq(srvctx.UserMock, fileSetId, fileIndex)
+	bucketId, mtProof, err := ctx.HandleDownloadFileInfoReq(srvctx.TENANT_MOCK, fileSetId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
@@ -35,8 +35,8 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 	}
 
 	localDirPath := computeFilesetDownloadDir(ctx, fileSetId)
-	if _, err := os.Stat(localDirPath); os.IsNotExist(err) { 
-    os.MkdirAll(localDirPath, os.ModePerm) // 511
+	if _, err := os.Stat(localDirPath); os.IsNotExist(err) {
+		os.MkdirAll(localDirPath, os.ModePerm) // 511
 	}
 	localFilePath := localDirPath + "/" + dFile.Name
 	localFile, err := os.Create(localFilePath)
@@ -50,7 +50,7 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 		return fmt.Errorf("failed to stream file data to '%v' \n%w", localFilePath, err)
 	}
 
-	// 3. Verify the downloaded file's hash based on the fileset's MerkleTree root 
+	// 3. Verify the downloaded file's hash based on the fileset's MerkleTree root
 	// and the MerkleTree proofs retrieved from VRFS
 	fileHashes, err := mtutils.ComputeFileHashes([]string{localFilePath})
 	if err != nil {
@@ -75,8 +75,8 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 	}
 	if !fileValid {
 		return fmt.Errorf("downloaded file '%v' fails the verification process - Root: %x  ProofSiblings: %d  Hash: %x", localFilePath, rootHash, len(mtProof.Siblings), fileHashes[0])
-	} 
-	log.Printf("Downloaded file '%v' Successfully verified as untampered!", localFilePath)
+	}
+	log.Printf("Downloaded file '%v': Successfully verified", localFilePath)
 
 	return nil
 }

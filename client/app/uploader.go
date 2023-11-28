@@ -40,7 +40,7 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 
 	// Request to VRFS for a bucket into which files can be remotely stored
 	fileSetId := FILESET_PREFIX + hex.EncodeToString(tree.Root)
-	status, bucketId, err := ctx.HandleFileBucketReq(srvctx.UserMock, fileSetId)
+	status, bucketId, err := ctx.HandleFileBucketReq(srvctx.TENANT_MOCK, fileSetId)
 	if err != nil || status < 0 {
 		return fmt.Errorf("missing a bucket ref to upload the fileset '%v'\n%w", fileSetId, err)
 	}
@@ -96,7 +96,7 @@ func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []strin
 // MerkleTree root hash for the remotely stored fileset.
 func confirmFilesUploadIsDoneAndCorrect(ctx *srvctx.ApiService, fileSetId string, rootHash []byte) (bool, error) {
 	// Notify VRFS that files upload is done
-	status, message, err := ctx.HandleUploadDoneReq(srvctx.UserMock, fileSetId, rootHash)
+	status, message, err := ctx.HandleUploadDoneReq(srvctx.TENANT_MOCK, fileSetId, rootHash)
 	if err != nil {
 		return false, fmt.Errorf("failed to confirm that remotely stored files for fileset '%v' match with local ones (root: %v)\n%w", fileSetId, rootHash, err)
 	}

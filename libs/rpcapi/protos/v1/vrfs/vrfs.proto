@@ -33,7 +33,7 @@ message HelloReply {
 // The request message for a file bucket where to upload files, if granted
 message UploadBucketRequest {
   // Tenant ID to which a file storage bucket is to be associated
-  string user_id = 1;
+  string tenant_id = 1;
   // The fileset ID for which a file storage bucket is requested
   string fileset_id = 2;
 }
@@ -47,7 +47,7 @@ message UploadBucketResponse {
 // The request message for confirming files have been uploaded to a remote file storage
 message UploadDoneRequest {
   // Tenant ID to which the fileset belongs
-  string user_id = 1;
+  string tenant_id = 1;
   // ID of the fileset to which the file belongs
   string fileset_id = 2;
   // The MerkleTree root hash of the fileset, generated & stored by the client
@@ -65,7 +65,7 @@ message UploadDoneResponse {
 // The request message for retrieving the necessary info to download and verify the consistency of a file
 message DownloadFileInfoRequest {
   // Tenant ID to which the fileset belongs
-  string user_id = 1;
+  string tenant_id = 1;
   // ID of the fileset to which the file belongs
   string fileset_id = 2;
   // Index number of the file within the fileset
@@ -80,7 +80,7 @@ message DownloadFileInfoResponse {
   MTProof mt_proof = 2;
 }
 
-// A Merkle Tree proof
+// A Merkle Tree proof message
 message MTProof {
   // Sibling nodes to the Merkle Tree path of the data block
   repeated bytes siblings = 1;
