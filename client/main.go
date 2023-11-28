@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ja88a/vrfs-go-merkletree/client/app"
+	app "github.com/ja88a/vrfs-go-merkletree/client/app"
 	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 )
 
 var (
-	action      = flag.String("action", "", "The expected client action: `ping` (default); `upload` or `download` of files in the specified `dir`")
-	updir       = flag.String("updir", "fs-playground/forupload/catyclops", "Upload - The local directory where to find files to upload or to download a file to, depending on the specified action")
+	action      = flag.String("action", "", "Expected client action: `ping` (default); `upload` or `download` of files in the specified `dir`")
+	updir       = flag.String("updir", "fs-playground/forupload/catyclops", "Upload - The local directory where to find the files to upload")
 	downdir     = flag.String("downdir", "fs-playground/downloaded", "Download - The local directory where client files are downloaded to")
-	fileSet     = flag.String("fileset", "fs-10f652e11f5e2f799481ed02d45a74bcf3d62dea3200ad08120bba43c242f5fb", "Download - The fileset ID to request for a file download")
-	index       = flag.String("index", "0", "Download - The index number of the file to be downloaded in the specified local dir")
+	fileSet     = flag.String("fileset", "fs-10f652e11f5e2f799481ed02d45a74bcf3d62dea3200ad08120bba43c242f5fb", "Download* - The fileset ID to request for a file download")
+	index       = flag.String("index", "0", "Download* - The index number of the file to be downloaded in the specified local dir")
 	apiEndpoint = flag.String("api", "localhost:50051", "The gRPC endpoint (host & port) for the VRFS Service API")
 	rfsEndpoint = flag.String("fs", "localhost:9000", "The gRPC endpoint (host & port) for the Remote File Storage service")
 	batchSize   = flag.String("batch", "5", "Upload - Batch size, the max number of concurrent file uploads")
@@ -67,7 +67,7 @@ func main() {
 		}
 	default:
 		// Default command line info
-		fmt.Printf("VRFS Client v0.1.0 2023-11\n\nNo action specified.\n\nHelp command: `./vrfs-client -h`\n\n")
+		fmt.Printf("VRFS Client v0.1.0 2023-11\n\nNo action specified.\n\nHelp command: `vrfs-client -h`\n\n")
 		clientCtx.HandlePingVrfsReq()
 	}
 }
