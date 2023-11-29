@@ -63,10 +63,10 @@ func computeBucketId(userId string, filesetId string) string {
 	return userId + "_" + filesetId
 }
 
-// Handle the requests for ping requests: SayHello supports a basic ping service
-func (g *VerifiableRemoteFileStorageServer) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	g.l.Debug("Received: %v", in.GetName())
-	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
+// Handle the requests for ping requests
+func (g *VerifiableRemoteFileStorageServer) Ping(ctx context.Context, in *pb.PingRequest) (*pb.PingReply, error) {
+	g.l.Debug("Received ping request: %v", in.GetName())
+	return &pb.PingReply{Message: "Hello " + in.GetName() + "!"}, nil
 }
 
 // Handle the requests for notifying that a fileset has been uploaded, its consistency verified and confirmed to the client

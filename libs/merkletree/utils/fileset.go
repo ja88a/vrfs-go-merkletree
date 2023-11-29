@@ -10,27 +10,6 @@ import (
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 )
 
-// List all files (their path) found in the specified directory and its subdirs.
-//
-// Walks the file tree rooted at root, calling fn for each file or directory in the tree, including root.
-// The files are walked in lexical order, which makes the output deterministic
-func ListDirFilePaths(rootDir string) ([]string, error) {
-	var filePaths []string
-
-	if _, err := os.Stat(rootDir); err != nil {
-		return nil, fmt.Errorf("unsupported local directory: '%v'\n%w", rootDir, err)
-	}
-
-	err := filepath.WalkDir(rootDir, func(path string, info fs.DirEntry, err error) error {
-		if !info.IsDir() {
-			filePaths = append(filePaths, path)
-		}
-		return nil
-	})
-
-	return filePaths, err
-}
-
 // Compute the file content hash of all the provided file paths
 func ComputeFileHashes(filePaths []string) ([][]byte, error) {
 	var fileHashes [][]byte
@@ -79,6 +58,27 @@ func GenerateMerkleTree(fileHashes [][]byte, generateProofs bool) (*mt.MerkleTre
 	}
 
 	return tree, nil
+}
+
+// List all files (their path) found in the specified directory and its subdirs.
+//
+// Walks the file tree rooted at root, calling fn for each file or directory in the tree, including root.
+// The files are walked in lexical order, which makes the output deterministic
+func ListDirFilePaths(rootDir string) ([]string, error) {
+	var filePaths []string
+
+	if _, err := os.Stat(rootDir); err != nil {
+		return nil, fmt.Errorf("unsupported local directory: '%v'\n%w", rootDir, err)
+	}
+
+	err := filepath.WalkDir(rootDir, func(path string, info fs.DirEntry, err error) error {
+		if !info.IsDir() {
+			filePaths = append(filePaths, path)
+		}
+		return nil
+	})
+
+	return filePaths, err
 }
 
 // Utility method for extracting the longest common prefix among a set of provided strings

@@ -29,8 +29,8 @@ type VerifiableRemoteFileStorageClient interface {
 	// Get the download info to retrieve a file from the files storage server as well as
 	// the MerkleTree proofs to confirm it has not been tampered
 	DownloadFileInfo(ctx context.Context, in *DownloadFileInfoRequest, opts ...grpc.CallOption) (*DownloadFileInfoResponse, error)
-	// Sends a greeting / Service ping request
-	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+	// Dummy ping request: check that the service is available & responsive
+	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReply, error)
 }
 
 type verifiableRemoteFileStorageClient struct {
@@ -68,9 +68,9 @@ func (c *verifiableRemoteFileStorageClient) DownloadFileInfo(ctx context.Context
 	return out, nil
 }
 
-func (c *verifiableRemoteFileStorageClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
-	out := new(HelloReply)
-	err := c.cc.Invoke(ctx, "/vrfs.VerifiableRemoteFileStorage/SayHello", in, out, opts...)
+func (c *verifiableRemoteFileStorageClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReply, error) {
+	out := new(PingReply)
+	err := c.cc.Invoke(ctx, "/vrfs.VerifiableRemoteFileStorage/Ping", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +88,8 @@ type VerifiableRemoteFileStorageServer interface {
 	// Get the download info to retrieve a file from the files storage server as well as
 	// the MerkleTree proofs to confirm it has not been tampered
 	DownloadFileInfo(context.Context, *DownloadFileInfoRequest) (*DownloadFileInfoResponse, error)
-	// Sends a greeting / Service ping request
-	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+	// Dummy ping request: check that the service is available & responsive
+	Ping(context.Context, *PingRequest) (*PingReply, error)
 	mustEmbedUnimplementedVerifiableRemoteFileStorageServer()
 }
 
@@ -106,8 +106,8 @@ func (UnimplementedVerifiableRemoteFileStorageServer) UploadDone(context.Context
 func (UnimplementedVerifiableRemoteFileStorageServer) DownloadFileInfo(context.Context, *DownloadFileInfoRequest) (*DownloadFileInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DownloadFileInfo not implemented")
 }
-func (UnimplementedVerifiableRemoteFileStorageServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+func (UnimplementedVerifiableRemoteFileStorageServer) Ping(context.Context, *PingRequest) (*PingReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 func (UnimplementedVerifiableRemoteFileStorageServer) mustEmbedUnimplementedVerifiableRemoteFileStorageServer() {
 }
@@ -177,20 +177,20 @@ func _VerifiableRemoteFileStorage_DownloadFileInfo_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _VerifiableRemoteFileStorage_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloRequest)
+func _VerifiableRemoteFileStorage_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(VerifiableRemoteFileStorageServer).SayHello(ctx, in)
+		return srv.(VerifiableRemoteFileStorageServer).Ping(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/vrfs.VerifiableRemoteFileStorage/SayHello",
+		FullMethod: "/vrfs.VerifiableRemoteFileStorage/Ping",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VerifiableRemoteFileStorageServer).SayHello(ctx, req.(*HelloRequest))
+		return srv.(VerifiableRemoteFileStorageServer).Ping(ctx, req.(*PingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -215,8 +215,8 @@ var VerifiableRemoteFileStorage_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _VerifiableRemoteFileStorage_DownloadFileInfo_Handler,
 		},
 		{
-			MethodName: "SayHello",
-			Handler:    _VerifiableRemoteFileStorage_SayHello_Handler,
+			MethodName: "Ping",
+			Handler:    _VerifiableRemoteFileStorage_Ping_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

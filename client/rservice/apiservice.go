@@ -109,11 +109,11 @@ func (clientCtx *ApiService) HandlePingVrfsReq() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	resp, err := clientCtx.VrfsClient.SayHello(ctx, &pbvrfs.HelloRequest{Name: "VRFS User"})
+	resp, err := clientCtx.VrfsClient.Ping(ctx, &pbvrfs.PingRequest{Name: "VRFS User"})
 	if err != nil {
 		return fmt.Errorf("VFRS service ping request fails\n%w", err)
 	}
 
-	log.Printf("Greetings %s! Connection to VRFS server is operational", resp.GetMessage())
+	log.Printf("%s - VRFS service is UP", resp.GetMessage())
 	return nil
 }

@@ -16,17 +16,17 @@ service VerifiableRemoteFileStorage {
   // the MerkleTree proofs to confirm it has not been tampered
   rpc DownloadFileInfo (DownloadFileInfoRequest) returns (DownloadFileInfoResponse);
 
-  // Sends a greeting / Service ping request
-  rpc SayHello (HelloRequest) returns (HelloReply); 
+  // Dummy ping request: check that the service is available & responsive
+  rpc Ping (PingRequest) returns (PingReply); 
 }
 
 // The request message containing the user's name.
-message HelloRequest {
+message PingRequest {
   string name = 1;
 }
 
 // The response message containing the greetings
-message HelloReply {
+message PingReply {
   string message = 1;
 }
 
