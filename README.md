@@ -4,9 +4,9 @@
 
 ### General
 
-The Verifiable Remote File Storage service aims at checking the consistency of uploaded then downloaded files, based on file hashes and their MerkleTree proofs.
+The Verifiable Remote File Storage service aims at checking the consistency of uploaded then downloaded files, based on the files' hash and their MerkleTree proofs as part of a fileset.
 
-This is the mono repository for the Go-based implementation of 2 backend services and 1 client CLI.
+This is the mono-repository for the Go-based implementation of 2 backend services and 1 client CLI.
 
 The gRPC protocol is used for optimal client-server and server-to-server communications.
 
@@ -26,14 +26,16 @@ Key principles:
 
 Design motivations:
 * Separation of concerns: storing the filesets (File Storage server) Vs. handling the files' verification process (VRFS API)
-    * Independence towards the used files storage service, i.e. can be replaced by a 3rd party file storage solution
+    * Independence towards the used files storage service, i.e. actual FS can be replaced by a 3rd party file storage solution
     * Corresponding micro-services cloud hosting platform instances can be customized per their core business requirements
-* Minimized data bandwidth consumption: with this design option
-    * the fact that the file storage service exposes an API for retrieving the file bucket hashes is a key requirement since this avoids the need for the VRFS API to upload or download the files
+* Minimized bandwidth consumption: limited file transfers
+    * with this design option the fact that the file storage service exposes an API for retrieving the file bucket hashes is a key requirement since this avoids the need for the VRFS API to upload or download the files
     * Integrating a 3rd party solution would probably not support the provision of the  file hashes. Integrating with a IPFS CID might be an option.
 
+The considered alternative system architectures are reported in the diagram [VRFS design options](./doc/assets/VRFS_overview-design-options_v1.png).
+
 This protocol results in: 
-* 6 steps to remotely store the files - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
+* 6 steps to remotely store a fileset - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
 * 3 steps to retrieve & verify a file - 1 client command: 1 VRFS API & 1 file download requests
 
 3 main components have been implemented:
@@ -128,7 +130,6 @@ $ make demo-run-upload
 $ make demo-run-download
 ```
 
-
 ### Building Executable Go Modules
 
 ```shell
@@ -194,6 +195,7 @@ Overview of the VRFS service main components:
 ![VRFS Service Overview](./doc/assets/VRFS_overview-service_v1.png)
 
 
+
 ## Development status
 
 The depicted files' upload, download & verification protocol is implemented and finalized.
@@ -244,7 +246,8 @@ A monitoring infra is to be added and servers should report their usage & perfor
 
 The integration of a Prometheus-like time serie events database should be considered so that each servers report their stats.
 
-Complementary tools like a monitoring dashboard, e.g. Grafana, and runtime alerts management, e.g. Kibana, would be welcome.
+Complementary tools like a monitoring dashboard, e.g. Grafana, and runtime alerts management, e.g. Kibana, should be considered for production.
+
 
 ### Required Improvements
 
@@ -277,3 +280,21 @@ E2E tests & a continuous integration / deployment flows should be implemented.
 A Cobra-like integration should be considered if the client CLI is given a priority.
 
 A logs manager on client side might also be integrated for prettier outputs.
+
+
+
+## Credits
+
+### txaty/go-merkletree
+
+The Merkle Tree support in this VRFS solution has been originally developped by Tommy TIAN as of March 2023.
+
+This Go library is distributed under the [MIT license](./libs/merkletree/LICENSE_go-merkletree) and its code repository is available at https://github.com/txaty/go-merkletree
+
+Minor packaging changes have been made. Custom config and fileset specific utilities extend the original implementation.
+
+
+
+## License
+
+The GNU Affero General Public License version 3 (AGPL v3, 2007) applies to this mono-repository and all of its software modules.
