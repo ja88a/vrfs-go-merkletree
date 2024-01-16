@@ -43,14 +43,14 @@ func Run(cfg *config.Config) {
 	signal.Notify(interrupt, shutdownSignals...)
 
 	go func(g *grpc.Server) {
-		logger.Info("FileStorage gRPC server started on " + cfg.GRPC.Port)
+		logger.Info("FileStorage server started on port " + cfg.GRPC.Port)
 		if err := g.Serve(listen); err != nil {
 			logger.Fatal(err)
 		}
 	}(grpcServer)
 	select {
 	case killSignal := <-interrupt:
-		logger.Debug("Got ", killSignal)
+		logger.Warn("Got ", killSignal)
 		cancel()
 	case <-ctx.Done():
 	}
