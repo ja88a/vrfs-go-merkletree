@@ -13,7 +13,7 @@ import (
 )
 
 // Batch upload of local files to the Remote FS store
-func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error {
+func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int, downDirPath string, downloadMaxBatchSize int) error {
 	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
 
 	// 1. Retrieve necessary download & verification proofs from VRFS
@@ -28,13 +28,13 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 
 	// 2. Save the file locally, in the client download dir
 	// Initiate the file download process from the File Storage server
-	ftService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize, DEBUG)
+	ftService := srvctx.NewFileTransfer(ctx.RfsEndpoint, downloadMaxBatchSize, DEBUG)
 	dFile, err := ftService.DownloadFile(bucketId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
 
-	localDirPath := computeFilesetDownloadDir(ctx, fileSetId)
+	localDirPath := computeFilesetDownloadDir(downDirPath, fileSetId)
 	if _, err := os.Stat(localDirPath); os.IsNotExist(err) {
 		os.MkdirAll(localDirPath, os.ModePerm) // 511
 	}
@@ -81,6 +81,6 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int) error
 	return nil
 }
 
-func computeFilesetDownloadDir(ctx *srvctx.ApiService, fileSetId string) string {
-	return ctx.LocalFileDownloadRepo + "/" + fileSetId
+func computeFilesetDownloadDir(localFileDownloadRepo string, fileSetId string) string {
+	return localFileDownloadRepo + "/" + fileSetId
 }

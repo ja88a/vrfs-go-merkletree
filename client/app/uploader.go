@@ -11,7 +11,7 @@ import (
 )
 
 // Initiate the verified upload protocol of all files found under the specified local directory path
-func Upload(ctx *srvctx.ApiService, localDirPath string) error {
+func Upload(ctx *srvctx.ApiService, localDirPath string, uploadMaxBatchSize int, uploadChunkSize int) error {
 	// Get the list of available local file paths
 	files, err := mtutils.ListDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {
@@ -47,7 +47,7 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 	log.Printf("Bucket '%v' (%d) available for uploading files", bucketId, status)
 
 	// Upload the local files to the Remote Files Server
-	err = uploadFiles(ctx, bucketId, files)
+	err = uploadFiles(ctx, bucketId, files, uploadMaxBatchSize, uploadChunkSize)
 	if err != nil || status < 0 {
 		return fmt.Errorf("failed to upload all local files to bucket '%v'\n%w", bucketId, err)
 	}
@@ -74,8 +74,8 @@ func Upload(ctx *srvctx.ApiService, localDirPath string) error {
 }
 
 // Batch upload of local files to the Remote FS store
-func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []string) error {
-	upService := srvctx.NewFileTransfer(ctx.RfsEndpoint, ctx.UploadMaxBatchSize, DEBUG)
+func uploadFiles(ctx *srvctx.ApiService, bucketId string, localFilePaths []string, uploadMaxBatchSize int, uploadChunkSize int) error {
+	upService := srvctx.NewFileTransfer(ctx.RfsEndpoint, uploadChunkSize, DEBUG)
 
 	// Loop over the local files to trigger their parallel upload
 	// TODO Batch upload of files: no more than 5 in parallel
