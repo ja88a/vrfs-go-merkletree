@@ -18,19 +18,26 @@ import (
 	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
 )
 
-// File transfer service context info
+// File transfer service's client and context info
 type FTService struct {
-	addr      string
-	batchSize int
-	client    pb.FileServiceClient
-	debug     bool
+	// Protobuf client
+	client pb.FileServiceClient
+
+	// connection URL of the FileTransfer service
+	addr string
+
+	// Max size of data chunks while transferring
+	chunkSize int
+
+	// Toogle for verbose log output
+	debug bool
 }
 
 // Init the file transfer service context info
-func NewFileTransfer(addr string, batchSize int, verbose bool) *FTService {
+func NewFileTransfer(addr string, chunkSize int, verbose bool) *FTService {
 	return &FTService{
 		addr:      addr,
-		batchSize: batchSize,
+		chunkSize: chunkSize,
 		debug:     verbose,
 	}
 }
@@ -49,7 +56,7 @@ func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 	fileName := filepath.Base(filePath)
 
 	// Loop over the file data per the specified max batch size
-	buf := make([]byte, s.batchSize)
+	buf := make([]byte, s.chunkSize)
 	batchNumber := 1
 	for {
 		num, err := file.Read(buf)
@@ -87,7 +94,7 @@ func (s *FTService) initClientConnection() (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to FS grpc API at '%v'\n%v", s.addr, err)
 	}
-	
+
 	s.client = pb.NewFileServiceClient(conn)
 
 	return conn, nil

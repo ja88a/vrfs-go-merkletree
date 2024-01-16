@@ -27,21 +27,12 @@ type ApiService struct {
 	// RFS server endpoint
 	RfsEndpoint string
 
-	// Max number of concurrent file uploads
-	UploadMaxConcurrent int
-
-	// Max data batch size for a file upload
-	UploadMaxBatchSize int
-
-	// logger to replace global logging
-	//log
-
-	// Path of the local root repository where files are downloaded
-	LocalFileDownloadRepo string
+	// Logger to replace global logging
+	//logger
 }
 
 // Init the client's remote service / context
-func NewClientContext(vrfsEndpoint string, nfsEndpoint string, upMaxConcurrent int, upBatchSize int, localDownloadRepo string) (*ApiService, error) {
+func NewClientContext(vrfsEndpoint string, nfsEndpoint string) (*ApiService, error) {
 	// VRFS server connection
 	vrfsConn, err := grpc.Dial(vrfsEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -53,9 +44,6 @@ func NewClientContext(vrfsEndpoint string, nfsEndpoint string, upMaxConcurrent i
 		vrfsTimeout: time.Second,
 
 		RfsEndpoint:           nfsEndpoint,
-		UploadMaxConcurrent:   upMaxConcurrent,
-		UploadMaxBatchSize:    upBatchSize,
-		LocalFileDownloadRepo: localDownloadRepo,
 	}, nil
 }
 
