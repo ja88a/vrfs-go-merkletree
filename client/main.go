@@ -47,9 +47,9 @@ func main() {
 		if err != nil || batchSizeNb < 1 {
 			log.Fatalf("Unsupported value %v for parameter 'batch' - must be a positive integer >= 1", *batchSize)
 		}
-		
+
 		// Upload the files of a fileset and confirm its consistency
-		err = appCtx.UploadDirFiles(*updir, batchSizeNb)
+		err = appCtx.UploadFileset(*updir, batchSizeNb)
 		if err != nil {
 			log.Fatalf("Failed to remotely store and verify the fileset\n%v", err)
 		}

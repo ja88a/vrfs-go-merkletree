@@ -10,7 +10,7 @@ import (
 )
 
 // Initiate the verified upload protocol of all files found under the specified local directory path
-func (ctx *ClientContext) UploadDirFiles(localDirPath string, batchSize int) error {
+func (ctx *ClientContext) UploadFileset(localDirPath string, batchSize int) error {
 	// Get the list of available local file paths
 	files, err := mtutils.ListDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {

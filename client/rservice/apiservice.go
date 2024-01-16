@@ -13,8 +13,15 @@ import (
 	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 )
 
+type VrfsService interface {
+	HandleFileBucketReq(tenantId string, fileSetId string) (int32, string, error)
+	HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error)
+	HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error)
+	HandlePingVrfsReq() error
+}
+
 // Client execution context to interact with its API services
-type VrfsService struct {
+type vrfsService struct {
 	// client to the VRFS GRPC service
 	client pbvrfs.VerifiableRemoteFileStorageClient
 
@@ -26,21 +33,21 @@ type VrfsService struct {
 }
 
 // Init the client's remote service / context
-func NewVrfsClient(vrfsEndpoint string) (*VrfsService, error) {
+func NewVrfsClient(vrfsEndpoint string) (VrfsService, error) {
 	// VRFS server connection
 	vrfsConn, err := grpc.Dial(vrfsEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
 
-	return &VrfsService{
+	return &vrfsService{
 		client:      pbvrfs.NewVerifiableRemoteFileStorageClient(vrfsConn),
 		vrfsTimeout: time.Second,
 	}, nil
 }
 
 // Handle the request for a file storage bucket from the VRFS API, to upload files to the file storage service
-func (apiCtx *VrfsService) HandleFileBucketReq(tenantId string, fileSetId string) (int32, string, error) {
+func (apiCtx *vrfsService) HandleFileBucketReq(tenantId string, fileSetId string) (int32, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
@@ -53,7 +60,7 @@ func (apiCtx *VrfsService) HandleFileBucketReq(tenantId string, fileSetId string
 }
 
 // Handle the request to VRFS for confirming the fileset has been correctly uploaded & stored
-func (apiCtx *VrfsService) HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error) {
+func (apiCtx *vrfsService) HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
@@ -66,7 +73,7 @@ func (apiCtx *VrfsService) HandleUploadDoneReq(tenantId string, fileSetId string
 }
 
 // Handle the request to VRFS for retrieving the info to download a file and check/proove it is untampered
-func (apiCtx *VrfsService) HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error) {
+func (apiCtx *vrfsService) HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
@@ -84,7 +91,7 @@ func (apiCtx *VrfsService) HandleDownloadFileInfoReq(tenantId string, fileSetId 
 }
 
 // Handle the VRFS API ping request, to check for its availability
-func (apiCtx *VrfsService) HandlePingVrfsReq() error {
+func (apiCtx *vrfsService) HandlePingVrfsReq() error {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
