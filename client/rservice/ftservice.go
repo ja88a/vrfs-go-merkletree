@@ -23,11 +23,11 @@ type FTService struct {
 	// Protobuf client
 	client pb.FileServiceClient
 
-	// connection URL of the FileTransfer service
-	addr string
+	// Endpoint of the FileTransfer service (host:port)
+	endpoint string
 
 	// Max size of data chunks while transferring
-	chunkSize int
+	dataChunkMaxSize int
 
 	// Toogle for verbose log output
 	debug bool
@@ -36,63 +36,17 @@ type FTService struct {
 // Init the file transfer service context info
 func NewFileTransfer(addr string, chunkSize int, verbose bool) *FTService {
 	return &FTService{
-		addr:      addr,
-		chunkSize: chunkSize,
+		endpoint:      addr,
+		dataChunkMaxSize: chunkSize,
 		debug:     verbose,
 	}
 }
 
-// Upload 1 file, using chunks with a max size, to the specified file storage's bucket
-func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucketId string, filePath string) error {
-	stream, err := s.client.Upload(ctx)
-	if err != nil {
-		return err
-	}
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-
-	fileName := filepath.Base(filePath)
-
-	// Loop over the file data per the specified max batch size
-	buf := make([]byte, s.chunkSize)
-	batchNumber := 1
-	for {
-		num, err := file.Read(buf)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		chunk := buf[:num]
-
-		// Send the file batch over gRPC
-		if err := stream.Send(&pb.FileUploadRequest{BucketId: bucketId, FileName: fileName, Chunk: chunk}); err != nil {
-			return err
-		}
-		if s.debug {
-			log.Printf("Sent chunk #%v of size %v\n", batchNumber, len(chunk))
-		}
-		batchNumber += 1
-	}
-
-	res, err := stream.CloseAndRecv()
-	if err != nil {
-		return err
-	}
-	if s.debug {
-		log.Printf("Sent %6d bytes for file %s\n", res.GetSize(), res.GetFileName())
-	}
-	cancel()
-	return nil
-}
-
+// Init the client gRPC connection
 func (s *FTService) initClientConnection() (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(s.addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(s.endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to FS grpc API at '%v'\n%v", s.addr, err)
+		return nil, fmt.Errorf("failed to connect to FS grpc API at '%v'\n%v", s.endpoint, err)
 	}
 
 	s.client = pb.NewFileServiceClient(conn)
@@ -101,9 +55,9 @@ func (s *FTService) initClientConnection() (*grpc.ClientConn, error) {
 }
 
 // Local file data transfer protocol based on gRPC streaming, in chunks
-func (s *FTService) SendFile(bucketId string, filePath string) error {
+func (s *FTService) UploadFile(bucketId string, filePath string) error {
 	if s.debug {
-		log.Printf("Sending file '%v' to FS bucket '%v' at '%v'", filePath, bucketId, s.addr)
+		log.Printf("Sending file '%v' to FS bucket '%v' at '%v'", filePath, bucketId, s.endpoint)
 	}
 
 	interrupt := make(chan os.Signal, 1)
@@ -143,11 +97,58 @@ func (s *FTService) SendFile(bucketId string, filePath string) error {
 	return nil
 }
 
+// Upload 1 file, using chunks with a max size, to the specified file storage's bucket
+func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucketId string, filePath string) error {
+	stream, err := s.client.Upload(ctx)
+	if err != nil {
+		return err
+	}
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+
+	fileName := filepath.Base(filePath)
+
+	// Loop over the file data per the specified max batch size
+	buf := make([]byte, s.dataChunkMaxSize)
+	batchNumber := 1
+	for {
+		num, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		chunk := buf[:num]
+
+		// Send the file chunk over gRPC
+		if err := stream.Send(&pb.FileUploadRequest{BucketId: bucketId, FileName: fileName, Chunk: chunk}); err != nil {
+			return err
+		}
+		if s.debug {
+			log.Printf("Sent chunk #%v of size %v\n", batchNumber, len(chunk))
+		}
+		batchNumber += 1
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		return err
+	}
+	if s.debug {
+		log.Printf("Sent %6d bytes for file %s\n", res.GetSize(), res.GetFileName())
+	}
+	cancel()
+	return nil
+}
+
 // Handle a file download request towards the FS server, based on a bucket ID (previously loaded) and a file index
 // Consider the file index towards a lexically sorted list order of the target files directory
 func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*rpcfile.File, error) {
 	if s.debug {
-		log.Printf("Downloading file #%d from FS bucket '%v' at '%v'", fileIndex, bucketId, s.addr)
+		log.Printf("Downloading file #%d from FS bucket '%v' at '%v'", fileIndex, bucketId, s.endpoint)
 	}
 
 	conn, err := s.initClientConnection()

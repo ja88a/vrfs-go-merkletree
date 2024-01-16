@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	app "github.com/ja88a/vrfs-go-merkletree/client/app"
-	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 )
 
 // CLI command parameters
@@ -29,8 +28,13 @@ var (
 func main() {
 	flag.Parse()
 
+	chunkSizeNb, err := strconv.Atoi(*chunkSize)
+	if err != nil || chunkSizeNb < 1024 {
+		log.Fatalf("Unsupported value %v for parameter 'chunk' - must be a positive integer >= 1024", *chunkSize)
+	}
+
 	// Initialize the client execution context
-	clientCtx, err := srvctx.NewClientContext(*apiEndpoint, *rfsEndpoint)
+	appCtx, err := app.NewClientContext(*apiEndpoint, *rfsEndpoint, chunkSizeNb)
 	if err != nil {
 		log.Fatalf("Failed to establish a connection to the VRFS API\n%v", err)
 	}
@@ -38,26 +42,22 @@ func main() {
 	// Run
 	switch *action {
 	case "upload":
-		// CLI params minimal checks
+		// CLI parameters minimal checks
 		batchSizeNb, err := strconv.Atoi(*batchSize)
 		if err != nil || batchSizeNb < 1 {
 			log.Fatalf("Unsupported value %v for parameter 'batch' - must be a positive integer >= 1", *batchSize)
 		}
-		chunkSizeNb, err := strconv.Atoi(*chunkSize)
-		if err != nil || chunkSizeNb < 1024 {
-			log.Fatalf("Unsupported value %v for parameter 'chunk' - must be a positive integer >= 1024", *chunkSize)
-		}
-
+		
 		// Upload the files of a fileset and confirm its consistency
-		err = app.Upload(clientCtx, *updir, batchSizeNb, chunkSizeNb)
+		err = appCtx.UploadDirFiles(*updir, batchSizeNb)
 		if err != nil {
 			log.Fatalf("Failed to remotely store and verify the fileset\n%v", err)
 		}
 
 	case "download":
-		// Download one file of a given fileset and verify it is unaltered
+		// CLI parameters minimal checks
 		if *fileSet == "" || !strings.HasPrefix(*fileSet, "fs-") {
-			log.Fatalf("A `fileset` parameter must be specified using the pattern 'fs-HexFilesetRootHash'. The HexFilesetRootHash, and the complete fileset ID are provided in logs of previous fileset upload process")
+			log.Fatalf("A `fileset` parameter must be specified using the pattern 'fs-HexFilesetRootHash'. The HexFilesetRootHash and the complete fileset ID are provided in logs of previous fileset upload process")
 		}
 		fileIndex, err := strconv.Atoi(*index)
 		if err != nil || fileIndex < 0 {
@@ -67,7 +67,9 @@ func main() {
 		if err != nil || chunkSizeNb < 1024 {
 			log.Fatalf("Unsupported value %v for parameter 'chunk' - must be a positive integer >= 1024", *chunkSize)
 		}
-		err = app.DownloadFile(clientCtx, *fileSet, fileIndex, *downdir, chunkSizeNb)
+
+		// Download one file of a given fileset and verify it is unaltered
+		err = appCtx.DownloadFile(*fileSet, fileIndex, *downdir)
 		if err != nil {
 			log.Fatalf("File download & verification process has failed\n%v", err)
 		}
@@ -75,6 +77,6 @@ func main() {
 	default:
 		// Default command line info
 		fmt.Printf("VRFS Client v0.1.0 2023-11\n\nNo action specified.\n\nHelp command: `vrfs-client -h`\n\n")
-		clientCtx.HandlePingVrfsReq()
+		appCtx.ServiceVrfs.HandlePingVrfsReq()
 	}
 }

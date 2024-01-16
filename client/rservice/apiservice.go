@@ -13,46 +13,38 @@ import (
 	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 )
 
-// Mock for Tenant ID
-const TENANT_MOCK string = "tmock"
-
 // Client execution context to interact with its API services
-type ApiService struct {
+type VrfsService struct {
 	// client to the VRFS GRPC service
-	VrfsClient pbvrfs.VerifiableRemoteFileStorageClient
+	client pbvrfs.VerifiableRemoteFileStorageClient
 
 	// default connection timeout for VRFS
 	vrfsTimeout time.Duration
-
-	// RFS server endpoint
-	RfsEndpoint string
 
 	// Logger to replace global logging
 	//logger
 }
 
 // Init the client's remote service / context
-func NewClientContext(vrfsEndpoint string, nfsEndpoint string) (*ApiService, error) {
+func NewVrfsClient(vrfsEndpoint string) (*VrfsService, error) {
 	// VRFS server connection
 	vrfsConn, err := grpc.Dial(vrfsEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
 
-	return &ApiService{
-		VrfsClient:  pbvrfs.NewVerifiableRemoteFileStorageClient(vrfsConn),
+	return &VrfsService{
+		client:      pbvrfs.NewVerifiableRemoteFileStorageClient(vrfsConn),
 		vrfsTimeout: time.Second,
-
-		RfsEndpoint:           nfsEndpoint,
 	}, nil
 }
 
 // Handle the request for a file storage bucket from the VRFS API, to upload files to the file storage service
-func (clientCtx *ApiService) HandleFileBucketReq(tenantId string, fileSetId string) (int32, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+func (apiCtx *VrfsService) HandleFileBucketReq(tenantId string, fileSetId string) (int32, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
-	resp, err := clientCtx.VrfsClient.UploadBucket(ctx, &pbvrfs.UploadBucketRequest{TenantId: tenantId, FilesetId: fileSetId})
+	resp, err := apiCtx.client.UploadBucket(ctx, &pbvrfs.UploadBucketRequest{TenantId: tenantId, FilesetId: fileSetId})
 	if err != nil {
 		return -1, "", fmt.Errorf("failed to request file bucket for '%v'\n%w", fileSetId, err)
 	}
@@ -61,11 +53,11 @@ func (clientCtx *ApiService) HandleFileBucketReq(tenantId string, fileSetId stri
 }
 
 // Handle the request to VRFS for confirming the fileset has been correctly uploaded & stored
-func (clientCtx *ApiService) HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+func (apiCtx *VrfsService) HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
-	resp, err := clientCtx.VrfsClient.UploadDone(ctx, &pbvrfs.UploadDoneRequest{TenantId: tenantId, FilesetId: fileSetId, MtRoot: mtRootHash})
+	resp, err := apiCtx.client.UploadDone(ctx, &pbvrfs.UploadDoneRequest{TenantId: tenantId, FilesetId: fileSetId, MtRoot: mtRootHash})
 	if err != nil {
 		return -1, resp.GetMessage(), fmt.Errorf("failed to request for files upload correctness - fileset: '%v'\n%w", fileSetId, err)
 	}
@@ -74,11 +66,11 @@ func (clientCtx *ApiService) HandleUploadDoneReq(tenantId string, fileSetId stri
 }
 
 // Handle the request to VRFS for retrieving the info to download a file and check/proove it is untampered
-func (clientCtx *ApiService) HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+func (apiCtx *VrfsService) HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
-	resp, err := clientCtx.VrfsClient.DownloadFileInfo(ctx, &pbvrfs.DownloadFileInfoRequest{TenantId: tenantId, FilesetId: fileSetId, FileIndex: int32(fileIndex)})
+	resp, err := apiCtx.client.DownloadFileInfo(ctx, &pbvrfs.DownloadFileInfoRequest{TenantId: tenantId, FilesetId: fileSetId, FileIndex: int32(fileIndex)})
 	if err != nil {
 		return resp.GetBucketId(), nil, fmt.Errorf("failed to retrieve download info for file #%4d in fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
@@ -92,12 +84,12 @@ func (clientCtx *ApiService) HandleDownloadFileInfoReq(tenantId string, fileSetI
 }
 
 // Handle the VRFS API ping request, to check for its availability
-func (clientCtx *ApiService) HandlePingVrfsReq() error {
+func (apiCtx *VrfsService) HandlePingVrfsReq() error {
 	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
 
-	resp, err := clientCtx.VrfsClient.Ping(ctx, &pbvrfs.PingRequest{Name: "VRFS User"})
+	resp, err := apiCtx.client.Ping(ctx, &pbvrfs.PingRequest{Name: "VRFS User"})
 	if err != nil {
 		return fmt.Errorf("VFRS service ping request fails\n%w", err)
 	}

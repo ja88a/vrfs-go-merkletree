@@ -7,17 +7,18 @@ import (
 	"os"
 	"strings"
 
-	srvctx "github.com/ja88a/vrfs-go-merkletree/client/rservice"
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 )
 
-// Batch upload of local files to the Remote FS store
-func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int, downDirPath string, downloadMaxBatchSize int) error {
+// Download a file, from its index as part of a known fileset, to the specified local directory 
+// from the Remote FS store and Verify its consistency, i.e. the hash of the downloaded file and 
+// the merkle proofs downloaded from VRFS are verified against the expected fileset's merkle tree root
+func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirPath string) error {
 	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
 
 	// 1. Retrieve necessary download & verification proofs from VRFS
-	bucketId, mtProof, err := ctx.HandleDownloadFileInfoReq(srvctx.TENANT_MOCK, fileSetId, fileIndex)
+	bucketId, mtProof, err := ctx.ServiceVrfs.HandleDownloadFileInfoReq(TENANT_MOCK, fileSetId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
@@ -28,8 +29,7 @@ func DownloadFile(ctx *srvctx.ApiService, fileSetId string, fileIndex int, downD
 
 	// 2. Save the file locally, in the client download dir
 	// Initiate the file download process from the File Storage server
-	ftService := srvctx.NewFileTransfer(ctx.RfsEndpoint, downloadMaxBatchSize, DEBUG)
-	dFile, err := ftService.DownloadFile(bucketId, fileIndex)
+	dFile, err := ctx.ServiceNfs.DownloadFile(bucketId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
