@@ -18,8 +18,18 @@ import (
 	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
 )
 
+// FTService is the client API for FTService
+type FTService interface {
+	// Local file data transfer protocol based on gRPC streaming, in chunks
+	UploadFile(bucketId string, localFilePath string) error
+
+	// Handle a file download request towards the FS server, based on a bucket ID (previously loaded) and a file index
+	// Consider the file index towards a lexically sorted list order of the target files directory
+	DownloadFile(bucketId string, fileIndex int) (*rpcfile.File, error)
+}
+
 // File transfer service's client and context info
-type FTService struct {
+type fTService struct {
 	// Protobuf client
 	client pb.FileServiceClient
 
@@ -34,16 +44,16 @@ type FTService struct {
 }
 
 // Init the file transfer service context info
-func NewFileTransfer(addr string, chunkSize int, verbose bool) *FTService {
-	return &FTService{
-		endpoint:      addr,
+func NewFileTransfer(addr string, chunkSize int, verbose bool) FTService {
+	return &fTService{
+		endpoint:         addr,
 		dataChunkMaxSize: chunkSize,
-		debug:     verbose,
+		debug:            verbose,
 	}
 }
 
 // Init the client gRPC connection
-func (s *FTService) initClientConnection() (*grpc.ClientConn, error) {
+func (s *fTService) initClientConnection() (*grpc.ClientConn, error) {
 	conn, err := grpc.Dial(s.endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to FS grpc API at '%v'\n%v", s.endpoint, err)
@@ -55,7 +65,7 @@ func (s *FTService) initClientConnection() (*grpc.ClientConn, error) {
 }
 
 // Local file data transfer protocol based on gRPC streaming, in chunks
-func (s *FTService) UploadFile(bucketId string, filePath string) error {
+func (s *fTService) UploadFile(bucketId string, filePath string) error {
 	if s.debug {
 		log.Printf("Sending file '%v' to FS bucket '%v' at '%v'", filePath, bucketId, s.endpoint)
 	}
@@ -81,7 +91,7 @@ func (s *FTService) UploadFile(bucketId string, filePath string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go func(s *FTService) {
+	go func(s *fTService) {
 		if err := s.upload(ctx, cancel, bucketId, filePath); err != nil {
 			log.Fatalf("Upload of file '%v' to FS bucket '%v' has failed\n%v", filePath, bucketId, err)
 			cancel()
@@ -98,7 +108,7 @@ func (s *FTService) UploadFile(bucketId string, filePath string) error {
 }
 
 // Upload 1 file, using chunks with a max size, to the specified file storage's bucket
-func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucketId string, filePath string) error {
+func (s *fTService) upload(ctx context.Context, cancel context.CancelFunc, bucketId string, filePath string) error {
 	stream, err := s.client.Upload(ctx)
 	if err != nil {
 		return err
@@ -146,7 +156,7 @@ func (s *FTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 
 // Handle a file download request towards the FS server, based on a bucket ID (previously loaded) and a file index
 // Consider the file index towards a lexically sorted list order of the target files directory
-func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*rpcfile.File, error) {
+func (s *fTService) DownloadFile(bucketId string, fileIndex int) (*rpcfile.File, error) {
 	if s.debug {
 		log.Printf("Downloading file #%d from FS bucket '%v' at '%v'", fileIndex, bucketId, s.endpoint)
 	}
@@ -177,6 +187,7 @@ func (s *FTService) DownloadFile(bucketId string, fileIndex int) (*rpcfile.File,
 	return rFile, nil
 }
 
+// Aggregate the chunks of a data stream to a local file
 func copyFromResponse(w *io.PipeWriter, stream pb.FileService_DownloadClient) {
 	message := new(pb.FileDownloadResponse)
 	var err error

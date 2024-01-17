@@ -11,14 +11,14 @@ import (
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 )
 
-// Download a file, from its index as part of a known fileset, to the specified local directory 
-// from the Remote FS store and Verify its consistency, i.e. the hash of the downloaded file and 
+// Download a file, from its index as part of a known fileset, to the specified local directory
+// from the Remote FS store and Verify its consistency, i.e. the hash of the downloaded file and
 // the merkle proofs downloaded from VRFS are verified against the expected fileset's merkle tree root
 func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirPath string) error {
 	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
 
 	// 1. Retrieve necessary download & verification proofs from VRFS
-	bucketId, mtProof, err := ctx.ServiceVrfs.HandleDownloadFileInfoReq(TENANT_MOCK, fileSetId, fileIndex)
+	bucketId, mtProof, err := ctx.Vrfs.HandleDownloadFileInfoReq(TENANT_MOCK, fileSetId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
@@ -29,7 +29,7 @@ func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirP
 
 	// 2. Save the file locally, in the client download dir
 	// Initiate the file download process from the File Storage server
-	dFile, err := ctx.ServiceNfs.DownloadFile(bucketId, fileIndex)
+	dFile, err := ctx.Nfs.DownloadFile(bucketId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetId, err)
 	}
@@ -81,6 +81,7 @@ func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirP
 	return nil
 }
 
+// Compute the FS path where files of a fileset are locally stored 
 func computeFilesetDownloadDir(localFileDownloadRepo string, fileSetId string) string {
 	return localFileDownloadRepo + "/" + fileSetId
 }

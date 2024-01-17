@@ -39,7 +39,7 @@ func (ctx *ClientContext) UploadFileset(localDirPath string, batchSize int) erro
 
 	// Request to VRFS for a bucket into which files can be remotely stored
 	fileSetId := FILESET_PREFIX + hex.EncodeToString(tree.Root)
-	status, bucketId, err := ctx.ServiceVrfs.HandleFileBucketReq(TENANT_MOCK, fileSetId)
+	status, bucketId, err := ctx.Vrfs.HandleFileBucketReq(TENANT_MOCK, fileSetId)
 	if err != nil || status < 0 {
 		return fmt.Errorf("missing a bucket ref to upload the fileset '%v'\n%w", fileSetId, err)
 	}
@@ -77,7 +77,7 @@ func (ctx *ClientContext) uploadFiles(bucketId string, localFilePaths []string, 
 	// Loop over the local files to trigger their parallel upload
 	// TODO Batch upload of files: no more than X in parallel
 	for _, filePath := range localFilePaths {
-		if err := ctx.ServiceNfs.UploadFile(bucketId, filePath); err != nil {
+		if err := ctx.Nfs.UploadFile(bucketId, filePath); err != nil {
 			return fmt.Errorf("failed to batch upload the file `%v`\n%w", filePath, err)
 		}
 	}
@@ -93,7 +93,7 @@ func (ctx *ClientContext) uploadFiles(bucketId string, localFilePaths []string, 
 // MerkleTree root hash for the remotely stored fileset.
 func (ctx *ClientContext) confirmAndVerifyFilesetUpload(fileSetId string, rootHash []byte) (bool, error) {
 	// Notify VRFS that files upload is done
-	status, message, err := ctx.ServiceVrfs.HandleUploadDoneReq(TENANT_MOCK, fileSetId, rootHash)
+	status, message, err := ctx.Vrfs.HandleUploadDoneReq(TENANT_MOCK, fileSetId, rootHash)
 	if err != nil {
 		return false, fmt.Errorf("failed to confirm that remotely stored files for fileset '%v' match with local ones (root: %v)\n%w", fileSetId, rootHash, err)
 	}
