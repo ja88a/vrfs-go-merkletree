@@ -10,7 +10,7 @@ import (
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 )
 
-// Compute the file content hash of all the provided file paths
+// Compute the file content hash of all provided file paths
 func ComputeFileHashes(filePaths []string) ([][]byte, error) {
 	var fileHashes [][]byte
 

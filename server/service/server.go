@@ -134,7 +134,7 @@ func computeDbKeyMtProofs(userId string, fileSetId string) string {
 }
 
 // Get the download info to retrieve a file from the files storage server as well as
-// the MerkleTree proofs to confirm it has not been tampered while being stored
+// the MerkleTree proofs to confirm it has not been tampered while being stored or transfered
 func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context, in *pb.DownloadFileInfoRequest) (*pb.DownloadFileInfoResponse, error) {
 	g.l.Info("Handle a DownloadFileInfo req from '%v' for fileset '%v' file #%v", in.GetTenantId(), in.GetFilesetId(), in.GetFileIndex())
 
