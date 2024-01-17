@@ -6,7 +6,7 @@ grpc:
   port: ':50051'
 
 logger:
-  log_level: 'debug'
+  log_level: 'info'
 
 cache:
   endpoint: 'localhost:6379'
