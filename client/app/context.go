@@ -9,10 +9,10 @@ import (
 // Client application context grouping the accesses to remote services
 type ClientContext struct {
 	// VRFS API service
-	ServiceVrfs rservice.VrfsService
+	Vrfs rservice.VrfsService
 
 	// File Transfer service
-	ServiceNfs *rservice.FTService
+	Nfs rservice.FTService
 }
 
 // Init the application context
@@ -27,7 +27,7 @@ func NewClientContext(vrfsEndpoint string, nfsEndpoint string, chunkSize int) (*
 	ftService := rservice.NewFileTransfer(nfsEndpoint, chunkSize, DEBUG)
 
 	return &ClientContext{
-		ServiceVrfs: vrfsService,
-		ServiceNfs:  ftService,
+		Vrfs: vrfsService,
+		Nfs:  ftService,
 	}, nil
 }
