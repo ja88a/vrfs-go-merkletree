@@ -13,11 +13,19 @@ import (
 	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
 )
 
+// The client API for the Verifiable Remote File Storage service
 type VrfsService interface {
+	// Handle the request for a file storage bucket from the VRFS API, to upload files to the file storage service
 	HandleFileBucketReq(tenantId string, fileSetId string) (int32, string, error)
+
+	// Handle the request to VRFS for confirming the fileset has been correctly uploaded & stored
 	HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error)
+
+	// Handle the request to VRFS for retrieving the info to download a file and check/proove it is untampered
 	HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error)
-	HandlePingVrfsReq() error
+
+	// Handle a VRFS API ping request, to check for the service availability
+	HandlePingReq() error
 }
 
 // Client execution context to interact with its API services
@@ -27,9 +35,6 @@ type vrfsService struct {
 
 	// default connection timeout for VRFS
 	vrfsTimeout time.Duration
-
-	// Logger to replace global logging
-	//logger
 }
 
 // Init the client's remote service / context
@@ -91,7 +96,7 @@ func (apiCtx *vrfsService) HandleDownloadFileInfoReq(tenantId string, fileSetId 
 }
 
 // Handle the VRFS API ping request, to check for its availability
-func (apiCtx *vrfsService) HandlePingVrfsReq() error {
+func (apiCtx *vrfsService) HandlePingReq() error {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), apiCtx.vrfsTimeout)
 	defer cancel()
