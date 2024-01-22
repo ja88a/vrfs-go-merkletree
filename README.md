@@ -1,3 +1,13 @@
+---
+
+//![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/ja88a/vrfs-go-merkletree/publish-release.yml)
+//![GitHub repo size](https://img.shields.io/github/repo-size/ja88a/vrfs-go-merkletree)
+![GitHub](https://img.shields.io/github/license/ja88a/vrfs-go-merkletree?color=green)
+//![GitHub release (latest by date)](https://img.shields.io/github/v/release/ja88a/vrfs-go-merkletree)
+//![GitHub Release Date](https://img.shields.io/github/release-date/ja88a/vrfs-go-merkletree)
+
+---
+
 # Verifiable Remote Files Storage
 
 ## Purpose
@@ -213,7 +223,7 @@ The computation models and their settings for the backbone Merkle Tree reference
 further refined and benchmarked, per the integration use case(s) and corresponding optimization
 requirements for ad-hoc computation, storage and transport.
 
-For the file hashes computation, constituing the MarkleTree leaf values, the SHA2-256 hashing function is used (NIS, 64 characters long for every string).
+For the file hashes computation, constituing the MerkleTree leaf values, the SHA2-256 hashing function is used (NIS, 64 characters long for every string).
 Alternative file hashing functions might be considered to adapt and/or optimize the computations runtime.
 Notice the fact that the client and the FS server require using the same hashing function on files since both build a Merkle Tree out of the file hashes.
 
