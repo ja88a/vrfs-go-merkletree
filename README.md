@@ -1,10 +1,10 @@
 ---
 
-//![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/ja88a/vrfs-go-merkletree/publish-release.yml)
-//![GitHub repo size](https://img.shields.io/github/repo-size/ja88a/vrfs-go-merkletree)
+![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/ja88a/vrfs-go-merkletree/publish-release.yml)
+![GitHub repo size](https://img.shields.io/github/repo-size/ja88a/vrfs-go-merkletree)
 ![GitHub](https://img.shields.io/github/license/ja88a/vrfs-go-merkletree?color=green)
-//![GitHub release (latest by date)](https://img.shields.io/github/v/release/ja88a/vrfs-go-merkletree)
-//![GitHub Release Date](https://img.shields.io/github/release-date/ja88a/vrfs-go-merkletree)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/ja88a/vrfs-go-merkletree)
+![GitHub Release Date](https://img.shields.io/github/release-date/ja88a/vrfs-go-merkletree)
 
 ---
 
