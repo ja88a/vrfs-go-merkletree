@@ -1,10 +1,16 @@
 ---
 
-![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/ja88a/vrfs-go-merkletree/publish-release.yml)
+![GitHub Golang logo](https://img.shields.io/badge/Go-#00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![GitHub repo Go version](https://img.shields.io/github/go-mod/go-version/ja88a/vrfs-go-merkletree)
+![GitHub Docker logo](https://img.shields.io/badge/Docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![GitHub repo size](https://img.shields.io/github/repo-size/ja88a/vrfs-go-merkletree)
-![GitHub](https://img.shields.io/github/license/ja88a/vrfs-go-merkletree?color=green)
+![GitHub repo license](https://img.shields.io/github/license/ja88a/vrfs-go-merkletree?color=green)
+
+<!-- 
+![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/ja88a/vrfs-go-merkletree/publish-release.yml)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ja88a/vrfs-go-merkletree)
 ![GitHub Release Date](https://img.shields.io/github/release-date/ja88a/vrfs-go-merkletree)
+-->
 
 ---
 
