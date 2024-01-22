@@ -1,4 +1,4 @@
-// Package main implements the client for the VRFS & the FileServer services
+// Main is the package implementing the CLI client for the VRFS & the FileServer services
 package main
 
 import (
@@ -24,7 +24,7 @@ var (
 	chunkSize   = flag.String("chunk", "1048576", "Max size of data chunks transfer for each file upload or download")
 )
 
-// Client CLI entry point
+// Main is the Client CLI entry point method
 func main() {
 	flag.Parse()
 
@@ -39,7 +39,7 @@ func main() {
 		log.Fatalf("Failed to establish a connection to the VRFS API\n%v", err)
 	}
 
-	// Run
+	// Handle the specified action
 	switch *action {
 	case "upload":
 		// CLI parameters minimal checks

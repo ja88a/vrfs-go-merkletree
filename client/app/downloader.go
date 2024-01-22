@@ -11,13 +11,32 @@ import (
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 )
 
-// Download a file, from its index as part of a known fileset, to the specified local directory
+// DownloadFile is the method for downloading a file, from its index as part of a known fileset, to the specified local directory
 // from the Remote FS store and Verify its consistency, i.e. the hash of the downloaded file and
 // the merkle proofs downloaded from VRFS are verified against the expected fileset's merkle tree root
+//
+// The specified fileset ID is the one provided by the VRFS service when the fileset was initially uploaded
+// The local directory FS path for the file to be downloaded must also to specified, e.g. './localdowndir/'
+//
+// An error is returned in case an issue is met
 func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirPath string) error {
+	// Inputs validation
+	if len(fileSetId) == 0 {
+		return fmt.Errorf("unsupported fileset ID `%v`: it must be specified", fileSetId)
+	}
+	if !strings.HasPrefix(fileSetId, "fs-") {
+		return fmt.Errorf("unsupported fileset ID `%v`: it must be prefixed with `fs-` and made of its merkletree root hash value as provided by the VRFS when uploaded", fileSetId)
+	}
+	if fileIndex <= 0 {
+		return fmt.Errorf("unsupported file index `%v`: it must be a positive integer >= 0", fileIndex)
+	}
+	if len(downDirPath) == 0 {
+		return fmt.Errorf("unsupported local download directory path `%v`: it must be specified", downDirPath)
+	}
+
 	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
 
-	// 1. Retrieve necessary download & verification proofs from VRFS
+	// 1. Retrieve the necessary download info & verification proofs from VRFS
 	bucketId, mtProof, err := ctx.Vrfs.HandleDownloadFileInfoReq(TENANT_MOCK, fileSetId, fileIndex)
 	if err != nil {
 		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetId, err)

@@ -9,8 +9,17 @@ import (
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 )
 
-// Initiate the verified upload protocol of all files found under the specified local directory path
+// UploadFileset is the method for initiating the verified upload protocol of all files found under the specified local directory path
+// The maximum batch size of files to be concurrently uploaded is specified, it must be greater than 0
 func (ctx *ClientContext) UploadFileset(localDirPath string, batchSize int) error {
+	// Inputs validation
+	if len(localDirPath) == 0 {
+		return fmt.Errorf("unsupported local upload directory path `%v`: it must be specified", localDirPath)
+	}
+	if batchSize < 1 {
+		return fmt.Errorf("unsupported max batch size value `%v`: it must be a positive integer >= 1", batchSize)
+	}
+
 	// Get the list of available local file paths
 	files, err := mtutils.ListDirFilePaths(localDirPath)
 	if err != nil || len(files) == 0 {
