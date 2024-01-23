@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-fs"
 )
 
 // FTService is the client API for FTService

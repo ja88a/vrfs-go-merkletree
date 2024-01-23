@@ -40,7 +40,7 @@ type (
 	
 	// Cache -.
 	Cache struct {
-		Endpoint string `env-required:"true" yaml:"endpoint" env:"REDIS_ENDPOINT"`
+		Endpoint string `yaml:"endpoint" env:"REDIS_ENDPOINT"`
 		User string `yaml:"user" env:"REDIS_USER"`
 		Password string `yaml:"password" env:"REDIS_PASSWORD"`
 	}

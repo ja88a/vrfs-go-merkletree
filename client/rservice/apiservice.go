@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
-	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
+	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-api"
 )
 
 // The client API for the Verifiable Remote File Storage service

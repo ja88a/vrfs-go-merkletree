@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: libs/rpcapi/protos/v1/vrfs/vrfs.proto
+// source: libs/rpcapi/protos/v1/vrfs-api/vrfs.proto
 
-package vrfs
+package vrfs_api
 
 import (
 	context "context"
@@ -220,5 +220,5 @@ var VerifiableRemoteFileStorage_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "libs/rpcapi/protos/v1/vrfs/vrfs.proto",
+	Metadata: "libs/rpcapi/protos/v1/vrfs-api/vrfs.proto",
 }

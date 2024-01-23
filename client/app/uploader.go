@@ -52,7 +52,7 @@ func (ctx *ClientContext) UploadFileset(localDirPath string, batchSize int) erro
 	if err != nil || status < 0 {
 		return fmt.Errorf("missing a bucket ref to upload the fileset '%v'\n%w", fileSetId, err)
 	}
-	log.Printf("Bucket '%v' (%d) available for uploading files", bucketId, status)
+	log.Printf("Bucket '%v' available for uploading files (%d)", bucketId, status)
 
 	// Upload the local files to the Remote Files Server
 	err = ctx.uploadFiles(bucketId, files, batchSize)

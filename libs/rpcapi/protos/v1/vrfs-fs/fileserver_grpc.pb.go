@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: libs/rpcapi/protos/v1/fileserver/fileserver.proto
+// source: libs/rpcapi/protos/v1/vrfs-fs/fileserver.proto
 
-package fileserver
+package vrfs_fs
 
 import (
 	context "context"
@@ -22,13 +22,11 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FileServiceClient interface {
-	// Initiate a File Upload streaming process
+	// Upload method initiates a File Upload
 	Upload(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadClient, error)
-	
-	// Retrieve the list of all file hashes for a given bucket / a fileset storage
+	// BucketFileHashes method retrieves the list of all file hashes for a given bucket / fileset storage
 	BucketFileHashes(ctx context.Context, in *BucketFileHashesRequest, opts ...grpc.CallOption) (*BucketFileHashesResponse, error)
-	
-	// Initiate the download of a file content, part of a given bucket
+	// Download method initiates the download of a file content, part of a given bucket
 	Download(ctx context.Context, in *FileDownloadRequest, opts ...grpc.CallOption) (FileService_DownloadClient, error)
 }
 
@@ -119,11 +117,11 @@ func (x *fileServiceDownloadClient) Recv() (*FileDownloadResponse, error) {
 // All implementations must embed UnimplementedFileServiceServer
 // for forward compatibility
 type FileServiceServer interface {
-	// Initiate a File Upload
+	// Upload method initiates a File Upload
 	Upload(FileService_UploadServer) error
-	// Retrieve the list of all file hashes for a given bucket / fileset storage
+	// BucketFileHashes method retrieves the list of all file hashes for a given bucket / fileset storage
 	BucketFileHashes(context.Context, *BucketFileHashesRequest) (*BucketFileHashesResponse, error)
-	// Initiate the download of a file content, part of a given bucket
+	// Download method initiates the download of a file content, part of a given bucket
 	Download(*FileDownloadRequest, FileService_DownloadServer) error
 	mustEmbedUnimplementedFileServiceServer()
 }
@@ -243,5 +241,5 @@ var FileService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "libs/rpcapi/protos/v1/fileserver/fileserver.proto",
+	Metadata: "libs/rpcapi/protos/v1/vrfs-fs/fileserver.proto",
 }

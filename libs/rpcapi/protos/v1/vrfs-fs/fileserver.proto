@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+option go_package = "github.com/ja88a/vrfs-go-merkltree/libs/rpcapi/protos/v1/vrfs-fs";
+
+package fileserver;
+
+// FileService is the Remote File Storage service API definition
+service FileService {
+  // Upload method initiates a File Upload
+  rpc Upload(stream FileUploadRequest) returns(FileUploadResponse);
+
+  // BucketFileHashes method retrieves the list of all file hashes for a given bucket / fileset storage
+  rpc BucketFileHashes(BucketFileHashesRequest) returns(BucketFileHashesResponse);
+
+  // Download method initiates the download of a file content, part of a given bucket
+  rpc Download(FileDownloadRequest) returns(stream FileDownloadResponse);
+}
+
+// FileUploadRequest is the streamed request message for uploading a file in smaller chunks
+message FileUploadRequest {
+  string bucket_id = 1;
+  string file_name = 2;
+  bytes chunk = 3;
+}
+
+// FileUploadResponse is the response message of a file upload operation
+message FileUploadResponse {
+  string file_name = 1;
+  uint32 size = 2;
+}
+
+ // BucketFileHashesRequest is the request message for retrieving all file hashes of a given storage bucket
+message BucketFileHashesRequest {
+  string bucket_id = 1;
+}
+
+// BucketFileHashesResponse is the response message for the list of file hashes, sorted per the lexical order of the bucket's file names
+message BucketFileHashesResponse {
+  repeated bytes file_hashes = 1;
+}
+
+// FileDownloadRequest is the request message for downloading a file
+message FileDownloadRequest {
+  string bucket_id = 1;
+  int32 file_index = 2;
+}
+
+// FileDownloadResponse is the streamed response message for a file download
+message FileDownloadResponse {
+  bytes chunk = 1;
+}
