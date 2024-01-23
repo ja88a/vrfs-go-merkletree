@@ -16,8 +16,6 @@
 ![GitHub Release Date](https://img.shields.io/github/release-date/ja88a/vrfs-go-merkletree)
 -->
 
----
-
 # Verifiable Remote Files Storage
 
 ## Purpose
