@@ -22,11 +22,11 @@
 
 The Verifiable Remote File Storage service aims at checking the consistency of remotely stored files, uploaded as part of a fileset, then downloaded individually.
 
-Files are verified as untampered on client side, based on the retrieved files' hash, the known MerkleTree root hash of the corresponding fileset and the MerkleTree proofs provided by the service, computed and indexed when the fileset was uploaded.
+Files are verified as untampered on client side, based on the retrieved files' hash, the known MerkleTree root hash of the corresponding fileset and the MerkleTree proofs provided by the service for each file, computed and indexed when the fileset is uploaded.
+
+### Technical Components
 
 This is the mono-repository for the Go-based implementation of 2 backend services and 1 client CLI.
-
-### Tech Components
 
 3 main components are implemented:
 
@@ -211,15 +211,17 @@ This protocol results in:
 * 6 steps to remotely store a fileset - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
 * 3 steps to retrieve & verify a file - 1 client command: 1 VRFS API & 1 file download requests
 
-### Systems
-
-Overview of the considered overall, scalable solution to be implemented:
-
-![VRFS Solution Overview](./doc/assets/VRFS_overview-solution_v1b.png)
+### VRFS Service Overview
 
 Overview of the VRFS service main components:
 
 ![VRFS Service Overview](./doc/assets/VRFS_overview-service_v1.png)
+
+### System Architecture
+
+Overview of a considered scalable solution to be deployed:
+
+![VRFS Solution Overview](./doc/assets/VRFS_overview-solution_v1b.png)
 
 ## Development status
 
@@ -321,4 +323,4 @@ Minor packaging changes have been made. Custom config and fileset specific utili
 
 The GNU Affero General Public License version 3 (AGPL v3, 2007) applies to this mono-repository and all of its software modules.
 
-You can refer to the dedicated [licence file](./LICENSE). 
+You can refer to the dedicated [licence file](./LICENSE).
