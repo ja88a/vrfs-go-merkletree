@@ -7,6 +7,7 @@
 ![GitHub Golang logo](https://img.shields.io/badge/Golang-white.svg?style=for-the-badge&logo=go&logoColor=%2300ADD8)
 ![GitHub Redis logo](https://img.shields.io/badge/redis-white.svg?style=for-the-badge&logo=redis&logoColor=%23DC382D)
 ![GitHub Docker logo](https://img.shields.io/badge/Docker-white.svg?style=for-the-badge&logo=docker&logoColor=%230db7ed)
+![GitHub Actions logo](https://img.shields.io/badge/Workflows-white.svg?style=for-the-badge&logo=githubactions&logoColor=%232088FF)
 
 <!-- 
 ![GitHub repo license](https://img.shields.io/github/license/ja88a/vrfs-go-merkletree?color=green)
