@@ -1,6 +1,6 @@
 .PHONY: protos run
 
-setup:
+setup-workspace:
 	go work init
 	go work use ./libs/rpcapi
 	go work use ./libs/merkletree
@@ -24,10 +24,10 @@ protos:
 		libs/rpcapi/protos/v1/vrfs-fs/fileserver.proto
 
 run-vrfs:
-	go run server/main.go
+	go run vrfs-api/main.go
 
-run-fileserver:
-	go run fileserver/main.go
+run-fs:
+	go run vrfs-fs/main.go
 
 docker-build-vrfs:
 	docker build -f ./vrfs-api/Dockerfile -t vrfs-api:latest .
