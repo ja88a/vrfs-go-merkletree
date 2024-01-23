@@ -1,13 +1,13 @@
 go 1.21.4
 
 use (
-	./libs/config
-	./libs/logger
-	./libs/merkletree
-	./libs/db
-	./libs/rpcapi
 
 	./client
+	./libs/config
+	./libs/db
+	./libs/logger
+	./libs/merkletree
+	./libs/rpcapi
 
 	./vrfs-api
 	./vrfs-fs
