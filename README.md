@@ -62,8 +62,8 @@ enables running clean instances.
 
 Refer to the respective Dockerfiles:
 
-* VRFS API server: [`./server`](./server/Dockerfile)
-* File Storage server: [`./fileserver`](./fileserver/Dockerfile)
+* VRFS API server: [`./vrfs-api`](./vrfs-api/Dockerfile)
+* File Storage server: [`./vrfs-fs`](./vrfs-fs/Dockerfile)
 
 Notice there the monorepo specific dependencies management/requirements in case of `replace` in the respective `go.mod` files.
 
@@ -74,10 +74,10 @@ Notice there the monorepo specific dependencies management/requirements in case 
 
 ```shell
 # Run locally the File Storage server
-$ go run ./fileserver
+$ go run ./vrfs-fs
 
 # Run locally the VRFS server
-$ go run ./server
+$ go run ./vrfs-api
 ```
 
 ### Running the Client CLI
@@ -132,10 +132,10 @@ $ make demo-run-download
 go build ./client -o ./dist/vrfs-client
 
 # Build exec VRFS Server
-go build ./server -o ./dist/vrfs-server
+go build ./vrfs-api -o ./dist/vrfs-server
 
 # Build exec VRFS FileServer
-go build ./fileserver -o ./dist/vrfs-fs
+go build ./vrfs-fs -o ./dist/vrfs-fs
 ```
 
 ### Modules Runtime Config

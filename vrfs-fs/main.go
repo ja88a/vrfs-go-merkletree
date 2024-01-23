@@ -4,12 +4,12 @@ import (
 	"log"
 
 	"github.com/ja88a/vrfs-go-merkletree/libs/config"
-	"github.com/ja88a/vrfs-go-merkletree/fileserver/app"
+	"github.com/ja88a/vrfs-go-merkletree/vrfs-fs/app"
 )
 
 func main() {
 	// Configuration
-	cfg, err := config.NewConfig("server-fs")
+	cfg, err := config.NewConfig("vrfs-fs")
 	if err != nil {
 		log.Fatalf("Config error: %s", err)
 	}

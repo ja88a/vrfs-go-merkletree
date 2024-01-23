@@ -7,8 +7,8 @@ setup:
 	go work use ./libs/config
 	go work use ./libs/logger
 	go work use ./libs/db
-	go work use ./fileserver
-	go work use ./server
+	go work use ./vrfs-fs
+	go work use ./vrfs-api
 	go work use ./client
 
 versions:
@@ -18,10 +18,10 @@ versions:
 protos:
 	protoc --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		libs/rpcapi/protos/v1/vrfs/vrfs.proto
+		libs/rpcapi/protos/v1/vrfs-api/vrfs.proto
 	protoc --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		libs/rpcapi/protos/v1/fileserver/fileserver.proto
+		libs/rpcapi/protos/v1/vrfs-fs/fileserver.proto
 
 run-vrfs:
 	go run server/main.go
@@ -30,10 +30,10 @@ run-fileserver:
 	go run fileserver/main.go
 
 docker-build-vrfs:
-	docker build -f ./server/Dockerfile -t vrfs-api:latest .
+	docker build -f ./vrfs-api/Dockerfile -t vrfs-api:latest .
 
 docker-build-fserver:
-	docker build -f ./fileserver/Dockerfile -t vrfs-fs:latest .
+	docker build -f ./vrfs-fs/Dockerfile -t vrfs-fs:latest .
 
 docker-compose-up:
 	docker compose up --build --force-recreate --remove-orphans

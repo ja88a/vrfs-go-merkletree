@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
 	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
-	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
-	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 	logger "github.com/ja88a/vrfs-go-merkletree/libs/logger"
+	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
+	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-fs"
 )
 
 // Execution context of the service
@@ -155,14 +155,14 @@ Loop:
 		switch err {
 		case nil:
 		case io.EOF:
-				break Loop
+			break Loop
 		default:
-				return status.Errorf(codes.Internal, "failed transfering file chunk - io.ReadAll on %v: %v", srcFile.Name, err)
+			return status.Errorf(codes.Internal, "failed transfering file chunk - io.ReadAll on %v: %v", srcFile.Name, err)
 		}
 		chunk.Chunk = chunk.Chunk[:n]
 		serverErr := server.Send(chunk)
 		if serverErr != nil {
-				return status.Errorf(codes.Internal, "failed transfering file chunk - server.Send on %v: %v", srcFile.Name, serverErr)
+			return status.Errorf(codes.Internal, "failed transfering file chunk - server.Send on %v: %v", srcFile.Name, serverErr)
 		}
 	}
 

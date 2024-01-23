@@ -15,8 +15,8 @@ import (
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 
-	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs"
+	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-api"
+	pbfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-fs"
 
 	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
 	cache "github.com/ja88a/vrfs-go-merkletree/libs/db/cache"

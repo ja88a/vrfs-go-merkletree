@@ -16,7 +16,7 @@ services:
     container_name: vrfs-api
     build:
       context: .
-      dockerfile: ./server/Dockerfile
+      dockerfile: ./vrfs-api/Dockerfile
       target: production
     image: vrfs-api
     depends_on:
@@ -43,7 +43,7 @@ services:
     container_name: vrfs-fs
     build:
       context: .
-      dockerfile: ./fileserver/Dockerfile
+      dockerfile: ./vrfs-fs/Dockerfile
       target: production
     image: vrfs-fs
     restart: unless-stopped

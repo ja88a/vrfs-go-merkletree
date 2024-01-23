@@ -10,7 +10,3 @@ files_storage:
 
 logger:
   log_level: 'info'
-  
-cache:
-  endpoint: 'localhost:6379'
-  password: 'hSy2TiQFw8Yyzs4oxqjzwvoM'

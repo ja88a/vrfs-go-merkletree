@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -11,23 +12,30 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/ja88a/vrfs-go-merkletree/fileserver/service"
+	"github.com/ja88a/vrfs-go-merkletree/vrfs-api/service"
 
-	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/fileserver"
 	config "github.com/ja88a/vrfs-go-merkletree/libs/config"
+	pbvrfs "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-api"
 )
 
-// Run creates objects via constructors.
-func Run(cfg *config.Config) {
+// Initialize the VRFS Service run by loading its config and initializing the gRPC API
+func Run(cfg *config.Config) error {
 	logger := logger.New(cfg.Log.Level)
-	logger.Debug("Starting FileStorage server")
+	logger.Debug("Starting up the VRFS API")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Init the gRPC API service
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
-	uploadServer := service.New(logger, cfg)
-	pb.RegisterFileServiceServer(grpcServer, uploadServer)
+
+	vrfsServer, err := service.New(logger, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to init the VRFS service\n%w", err)
+	}
+	pbvrfs.RegisterVerifiableRemoteFileStorageServer(grpcServer, vrfsServer)
+
 	listen, err := net.Listen("tcp", cfg.GRPC.Port)
 	if err != nil {
 		logger.Fatal(err)
@@ -43,15 +51,17 @@ func Run(cfg *config.Config) {
 	signal.Notify(interrupt, shutdownSignals...)
 
 	go func(g *grpc.Server) {
-		logger.Info("FileStorage server started on port " + cfg.GRPC.Port)
+		logger.Info("VRFS gRPC server started on port " + cfg.GRPC.Port)
 		if err := g.Serve(listen); err != nil {
 			logger.Fatal(err)
 		}
 	}(grpcServer)
 	select {
 	case killSignal := <-interrupt:
-		logger.Warn("Got ", killSignal)
+		logger.Warn("Received kill signal: %v", killSignal)
 		cancel()
 	case <-ctx.Done():
 	}
+
+	return nil
 }

@@ -7,7 +7,7 @@ FROM golang:1.21-alpine3.18 As base
 # Root working dir
 WORKDIR /app-src
 
-COPY ./server/.semver.yaml ./.semver.yaml
+COPY ./vrfs-fs/.semver.yaml ./.semver.yaml
 
 # Target directory for built artefacts
 RUN mkdir ./dist
@@ -32,12 +32,12 @@ RUN go env -w GOCACHE=/go-cache
 RUN go env -w GOMODCACHE=/gomod-cache
 
 # Copy Go modules and dependencies to image
-COPY ./server ./server
+COPY ./vrfs-fs ./vrfs-fs
 COPY ./libs ./libs
 COPY ./config ./config
 
 # Switch to the VRFS module dir
-WORKDIR /app-src/server
+WORKDIR /app-src/vrfs-fs
 
 # Download Go modules and dependencies
 RUN --mount=type=cache,target=/gomod-cache \
@@ -48,25 +48,26 @@ COPY --chown=gorker:gorker --from=base /app-src/dist ./dist
 
 # Run the build command which creates the production bundle
 RUN --mount=type=cache,target=/go-cache --mount=type=cache,target=/gomod-cache \
-    go build -o dist/vrfs-server ./main.go
+    go build -o dist/vrfs-fs ./main.go
+
 
 
 ###################
 # PRODUCTION
 ###################
 
-FROM gcr.io/distroless/static-debian12:nonroot As production
+FROM  gcr.io/distroless/static-debian12 As production
 
 WORKDIR /app
 
 # Copy the bundled code from the build stage to the production image
-COPY --chown=nonroot:nonroot --from=build /app-src/server/dist ./
-COPY --chown=nonroot:nonroot --from=build /app-src/config/server-vrfs.yml ./config/server-vrfs.yml
+COPY --chown=nonroot:nonroot --from=build /app-src/vrfs-fs/dist ./
+COPY --chown=nonroot:nonroot --from=build /app-src/config/vrfs-fs.yml ./config/vrfs-fs.yml
 
 # Ensure the process will run under the user 'gorker'
-USER nonroot
+# USER nonroot
 
 # The port to expose
-EXPOSE 50051
+EXPOSE 9000
 
-ENTRYPOINT ["/app/vrfs-server"]
+ENTRYPOINT ["./vrfs-fs"]

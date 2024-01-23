@@ -1,4 +1,4 @@
-module github.com/ja88a/vrfs-go-merkletree/server
+module github.com/ja88a/vrfs-go-merkletree/vrfs-api
 
 go 1.21.4
 
