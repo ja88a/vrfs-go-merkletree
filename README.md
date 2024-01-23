@@ -1,6 +1,6 @@
 ![GitHub Golang logo](https://img.shields.io/badge/Golang-white.svg?style=for-the-badge&logo=go&logoColor=%2300ADD8)
 ![GitHub Redis logo](https://img.shields.io/badge/redis-white.svg?style=for-the-badge&logo=redis&logoColor=%23DC382D)
-![GitHub Docker logo](https://img.shields.io/badge/Docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![GitHub Docker logo](https://img.shields.io/badge/Docker-white.svg?style=for-the-badge&logo=docker&logoColor=%230db7ed)
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/ja88a/vrfs-go-merkletree)
 
@@ -20,49 +20,23 @@
 
 ### General
 
-The Verifiable Remote File Storage service aims at checking the consistency of uploaded then downloaded files, based on the files' hash and their MerkleTree proofs as part of a fileset.
+The Verifiable Remote File Storage service aims at checking the consistency of remotely stored files, uploaded as part of a fileset, then downloaded individually.
+
+Files are verified as untampered on client side, based on the retrieved files' hash, the known MerkleTree root hash of the corresponding fileset and the MerkleTree proofs provided by the service, computed and indexed when the fileset was uploaded.
 
 This is the mono-repository for the Go-based implementation of 2 backend services and 1 client CLI.
+
+### Tech Components
+
+3 main components are implemented:
+
+1. The VRFS API service - The core component of this protocol, exposing a gRPC API
+2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually. It also supports the retrieval of the stored files' hashes
+3. A client CLI to execute the 2 main upload and download operations, along with MerkleTree root computation and the proof-based file hash verifications
 
 The gRPC protocol is used for optimal client-server and server-to-server communications.
 
 A complete docker compose setup enables an easy local build, deployment & run.
-
-### Protocol Overview
-
-The overall implemented protocol for uploading or downloading local files to the remote file storage service, and have the files verified based on the generation of a Merkle Tree root and proofs for checking the leaf values (the file hashes here):
-
-![Implemented Protocol Overview](./doc/assets/VRFS_overview-protocol_v1.png)
-
-Key principles:
-
-* The VRFS service handles the creds/access to the [external] FS service
-* Files are directly uploaded to & downloaded from the FS service
-* VRFS retrieves the file hashes from the FS server, for building its Merkle Tree and store corresponding proofs
-
-Design motivations:
-
-* Separation of concerns: storing the filesets (File Storage server) Vs. handling the files' verification process (VRFS API)
-
-  * Independence towards the used files storage service, i.e. actual FS can be replaced by a 3rd party file storage solution
-    * Corresponding micro-services cloud hosting platform instances can be customized per their core business requirements
-
-* Minimized bandwidth consumption: limited file transfers
-  * with this design option the fact that the file storage service exposes an API for retrieving the file bucket hashes is a key requirement since this avoids the need for the VRFS API to upload or download the files
-  * Integrating a 3rd party solution would probably not support the provision of the  file hashes. Integrating with a IPFS CID might be an option.
-
-The considered alternative system architectures are reported in the diagram [VRFS design options](./doc/assets/VRFS_overview-design-options_v1.png).
-
-This protocol results in:
-
-* 6 steps to remotely store a fileset - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
-* 3 steps to retrieve & verify a file - 1 client command: 1 VRFS API & 1 file download requests
-
-3 main components have been implemented:
-
-1. The VRFS API service - The core component of this protocol, exposing a gRPC API
-2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually. It also supports the retrieval of the stored files' hashes
-3. A client CLI to execute the 2 main upload and download operations, along with MerkleProof-based file hash verifications
 
 ## Instructions
 
@@ -207,6 +181,38 @@ $ go work use ./moduleX
 
 ## Architecture
 
+### Protocol Overview
+
+The overall implemented protocol for uploading or downloading local files to the remote file storage service, and have the files verified based on the generation of a Merkle Tree root and proofs for checking the leaf values (the file hashes here):
+
+![Implemented Protocol Overview](./doc/assets/VRFS_overview-protocol_v1.png)
+
+Key principles:
+
+* The VRFS service handles the creds/access to the [external] FS service
+* Files are directly uploaded to & downloaded from the FS service
+* VRFS retrieves the file hashes from the FS server, for building its Merkle Tree and store corresponding proofs
+
+Design motivations:
+
+* Separation of concerns: storing the filesets (File Storage server) Vs. handling the files' verification process (VRFS API)
+
+  * Independence towards the used files storage service, i.e. actual FS can be replaced by a 3rd party file storage solution
+  * Corresponding micro-services cloud hosting platform instances can be customized per their core business requirements, i.e. their computation, bandwidth, memory requirements.
+
+* Minimized bandwidth consumption: limited file transfers
+  * with this design option the fact that the file storage service exposes an API for retrieving the file bucket hashes is a key requirement since this avoids the need for the VRFS API to upload or download the files
+  * Integrating a 3rd party solution would probably not support the provision of the  file hashes. Integrating with a IPFS CID might be an option.
+
+The considered alternative system architectures are reported in the diagram [VRFS design options](./doc/assets/VRFS_overview-design-options_v1.png).
+
+This protocol results in:
+
+* 6 steps to remotely store a fileset - 1 client command: 1 VRFS API & n file uploads requests + 1 VRFS->FS API request
+* 3 steps to retrieve & verify a file - 1 client command: 1 VRFS API & 1 file download requests
+
+### Systems
+
 Overview of the considered overall, scalable solution to be implemented:
 
 ![VRFS Solution Overview](./doc/assets/VRFS_overview-solution_v1b.png)
@@ -233,9 +239,9 @@ For the file hashes computation, constituing the MerkleTree leaf values, the SHA
 Alternative file hashing functions might be considered to adapt and/or optimize the computations runtime.
 Notice the fact that the client and the FS server require using the same hashing function on files since both build a Merkle Tree out of the file hashes.
 
-## Solution Readiness - Status
+## Production Readiness
 
-### Missing for Production
+### Required for Production
 
 #### Access & Traffic management
 
@@ -269,7 +275,7 @@ The integration of a Prometheus-like time serie events database should be consid
 
 Complementary tools like a monitoring dashboard, e.g. Grafana, and runtime alerts management, e.g. Kibana, should be considered for production.
 
-### Required Improvements
+### Further Improvements
 
 #### End-to-end TLS Encryption
 
@@ -314,3 +320,5 @@ Minor packaging changes have been made. Custom config and fileset specific utili
 ## License
 
 The GNU Affero General Public License version 3 (AGPL v3, 2007) applies to this mono-repository and all of its software modules.
+
+You can refer to the dedicated [licence file](./LICENSE). 
