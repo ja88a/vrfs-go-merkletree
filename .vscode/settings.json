@@ -1,11 +1,12 @@
 {
-    "gopls": {
-
-    },
-    "conventionalCommits.scopes": [
-        "client",
-        "api",
-        "fs",
-        "libs"
-    ]
+  "gopls": {},
+  "conventionalCommits.scopes": [
+    "vrfs-client",
+    "vrfs-api",
+    "vrfs-fs",
+    "vrfs-libs"
+  ],
+  "go.lintTool": "golangci-lint",
+  "go.lintOnSave": "package",
+  "go.lintFlags": ["--fast"]
 }

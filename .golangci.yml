@@ -15,7 +15,7 @@ linters:
     - errname # errors prefixed with Err and error types suffixed with Error
     - gofmt
     - goimports
-    - misspell
+    - misspell # finds commonly misspelled English words
     - nestif # deeply nested if statements
     - stylecheck # (enabled by default)
     - wastedassign # Finds wasted assignment statements
@@ -25,11 +25,12 @@ linters:
     - bodyclose # HTTP response body is closed successfully
     - contextcheck # checks non-inherited context
     - errcheck # unchecked errors (enabled by default)
+    - gosec # inspects source code for security problems
     - govet # suspicious constructs (enabled by default)
     - ineffassign # assignments to existing variables are not used (enabled by default)
 #    - rowserrcheck # Err of rows is checked successfully
 #    - sqlclosecheck # sql.Rows and sql.Stmt are closed
-    #- staticcheck
+    - staticcheck
     - typecheck # (enabled by default)
     - unparam # reports unused function parameters
     - unused # unused constants, variables, functions and types (enabled by default)
@@ -51,7 +52,7 @@ linters:
         "all",
         # Disable rules:
         "-ST1000", # Package comments.
-        "-ST1003", # Capitalizations in fields' camel case name, e.g. 'nameID' instead of 'nameId'
+        #"-ST1003", # Capitalizations in fields' camel case name, e.g. 'nameID' instead of 'nameId'
       ]
 
       initialisms: [
@@ -93,7 +94,7 @@ output:
   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
   # Output path can be either `stdout`, `stderr` or path to the file to write to.
   # Example: "checkstyle:report.json,colored-line-number"
-  format: "github-actions,colored-line-number"
+  format: "json" # github-actions,colored-line-number
   # Print lines of code with issue.
   print-issued-lines: true
   # Print linter name in the end of issue text.
