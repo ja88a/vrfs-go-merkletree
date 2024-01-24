@@ -51,7 +51,7 @@ linters:
         "all",
         # Disable rules:
         "-ST1000", # Package comments.
-        "-ST1003", # Capitalizations in fields' camel case name, e.g. 'ID' instead of 'Id'
+        "-ST1003", # Capitalizations in fields' camel case name, e.g. 'nameID' instead of 'nameId'
       ]
 
       initialisms: [
@@ -93,7 +93,7 @@ output:
   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
   # Output path can be either `stdout`, `stderr` or path to the file to write to.
   # Example: "checkstyle:report.json,colored-line-number"
-  format: "checkstyle:github-actions,colored-line-number"
+  format: "github-actions,colored-line-number"
   # Print lines of code with issue.
   print-issued-lines: true
   # Print linter name in the end of issue text.
