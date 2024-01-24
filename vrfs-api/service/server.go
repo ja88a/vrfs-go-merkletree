@@ -59,8 +59,8 @@ func (g *VerifiableRemoteFileStorageServer) UploadBucket(ctx context.Context, in
 }
 
 // Simple bucket ID generation method
-func computeBucketId(userId string, filesetId string) string {
-	return userId + "_" + filesetId
+func computeBucketId(tenantId string, filesetId string) string {
+	return tenantId + "_" + filesetId
 }
 
 // Handle the requests for ping requests
@@ -129,12 +129,12 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 }
 
 // Utility method for computing the KV store's entry key for a set of MerkleTree proofs
-func computeDbKeyMtProofs(userId string, fileSetId string) string {
-	return userId + "_" + fileSetId + "_mtproofs"
+func computeDbKeyMtProofs(tenantId string, fileSetId string) string {
+	return tenantId + "_" + fileSetId + "_mtproofs"
 }
 
 // Get the download info to retrieve a file from the files storage server as well as
-// the MerkleTree proofs to confirm it has not been tampered while being stored or transfered
+// the MerkleTree proofs to confirm it has not been tampered while being stored or transferred
 func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context, in *pb.DownloadFileInfoRequest) (*pb.DownloadFileInfoResponse, error) {
 	g.l.Info("Handle a DownloadFileInfo req from '%v' for fileset '%v' file #%v", in.GetTenantId(), in.GetFilesetId(), in.GetFileIndex())
 
@@ -143,21 +143,21 @@ func (g *VerifiableRemoteFileStorageServer) DownloadFileInfo(ctx context.Context
 
 	// Retrieve MT Proofs from the DB
 	dbKey := computeDbKeyMtProofs(in.GetTenantId(), in.GetFilesetId())
-	mtProofsDb, err := g.db.GetString(dbKey)
+	mtProofsDB, err := g.db.GetString(dbKey)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to retrieve MT Proofs for fileset '%v' file #%d from db \n%v", in.FilesetId, in.FileIndex, err)
 		g.l.Error(respMsg)
 		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.DataLoss, respMsg)
 	}
-	if mtProofsDb == "" {
+	if mtProofsDB == "" {
 		respMsg := fmt.Sprintf("No MerkleTree Proofs available in DB for fileset '%v' Tenant: '%v'", in.GetFilesetId(), in.GetTenantId())
 		g.l.Error(respMsg)
 		return &pb.DownloadFileInfoResponse{BucketId: bucketId, MtProof: nil}, status.Error(codes.FailedPrecondition, respMsg)
 	}
 
-	// Convert the MT Proof
+	// Convert the MT Proofs
 	var mtProofs []*mt.Proof
-	err = json.Unmarshal([]byte(mtProofsDb), &mtProofs)
+	err = json.Unmarshal([]byte(mtProofsDB), &mtProofs)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to unmarshall JSON MerkleTree Proofs from DB for fileset '%v' Tenant: '%v'", in.GetFilesetId(), in.GetTenantId())
 		g.l.Error(respMsg)

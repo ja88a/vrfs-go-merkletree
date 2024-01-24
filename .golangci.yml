@@ -50,7 +50,8 @@ linters:
         # Enable all rules by default (opinionated):
         "all",
         # Disable rules:
-        "-ST1000" # Package comments.
+        "-ST1000", # Package comments.
+        "-ST1003", # Capitalizations in fields' camel case name, e.g. 'ID' instead of 'Id'
       ]
 
       initialisms: [
