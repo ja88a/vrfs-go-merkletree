@@ -1,0 +1,103 @@
+run:
+  go: '1.21'
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 2m
+  # exit code when at least one issue was found, default is 1
+  issues-exit-code: 1
+  # include test files or not, default is true
+  tests: true
+  # modules-download-mode: vendor #readonly #|release|vendor
+
+linters:
+  disable-all: true
+  enable:
+    # Style checkers
+    - errname # errors prefixed with Err and error types suffixed with Error
+    - gofmt
+    - goimports
+    - misspell
+    - nestif # deeply nested if statements
+    - stylecheck # (enabled by default)
+    - wastedassign # Finds wasted assignment statements
+
+    # Bug finders
+    - asciicheck
+    - bodyclose # HTTP response body is closed successfully
+    - contextcheck # checks non-inherited context
+    - errcheck # unchecked errors (enabled by default)
+    - govet # suspicious constructs (enabled by default)
+    - ineffassign # assignments to existing variables are not used (enabled by default)
+#    - rowserrcheck # Err of rows is checked successfully
+#    - sqlclosecheck # sql.Rows and sql.Stmt are closed
+    #- staticcheck
+    - typecheck # (enabled by default)
+    - unparam # reports unused function parameters
+    - unused # unused constants, variables, functions and types (enabled by default)
+
+#  disable:
+#    - goerr113 # checks errors are checked correctly
+#    - gosimple # same as staticcheck linter
+
+  linters-settings:
+    govet:
+      # Report about shadowed variables.
+      check-shadowing: true
+    stylecheck:
+      # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+      # Default: ["*"]
+      checks: [
+        # https://staticcheck.io/docs/checks/
+        # Enable all rules by default (opinionated):
+        "all",
+        # Disable rules:
+        "-ST1000" # Package comments.
+      ]
+
+      initialisms: [
+        # Common.
+        "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA",
+        "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS",
+        "SIP", "RTP", "AMQP", "DB", "TS",
+        # Domain specific.
+      ]
+
+      # https://staticcheck.io/docs/configuration/options/#http_status_code_whitelist
+      # Default: ["200", "400", "404", "500"]
+      http-status-code-whitelist: ["200", "400", "404", "500"]
+
+#    rowserrcheck:
+#      # database/sql is always checked
+#      # Default: []
+#      packages:
+#        - github.com/jmoiron/sqlx
+
+    errcheck:
+      # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+      check-type-assertions: true
+      # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`.
+      check-blank: true
+
+    misspell:
+      locale: US
+
+  issues:
+    # Maximum issues count per one linter. Set to 0 to disable.
+    max-issues-per-linter: 100
+    # Maximum count of issues with the same text. Set to 0 to disable.
+    max-same-issues: 10
+    # Fix found issues (if it's supported by the linter)
+    fix: false # might change
+
+output:
+  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
+  # Output path can be either `stdout`, `stderr` or path to the file to write to.
+  # Example: "checkstyle:report.json,colored-line-number"
+  format: colored-line-number
+  # Print lines of code with issue.
+  print-issued-lines: true
+  # Print linter name in the end of issue text.
+  print-linter-name: true
+  # Make issues output unique by line.
+  uniq-by-line: false
+  # Sort results by: filepath, line and column.
+  sort-results: true
