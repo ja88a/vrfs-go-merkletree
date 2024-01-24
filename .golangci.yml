@@ -85,15 +85,15 @@ linters:
     # Maximum issues count per one linter. Set to 0 to disable.
     max-issues-per-linter: 100
     # Maximum count of issues with the same text. Set to 0 to disable.
-    max-same-issues: 10
+    max-same-issues: 100
     # Fix found issues (if it's supported by the linter)
-    fix: false # might change
+    fix: false
 
 output:
   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
   # Output path can be either `stdout`, `stderr` or path to the file to write to.
   # Example: "checkstyle:report.json,colored-line-number"
-  format: colored-line-number
+  format: "checkstyle:github-actions,colored-line-number"
   # Print lines of code with issue.
   print-issued-lines: true
   # Print linter name in the end of issue text.
