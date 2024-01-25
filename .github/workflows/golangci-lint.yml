@@ -54,7 +54,7 @@ jobs:
           # skip-build-cache: true
 
           # Optional: The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
-          install-mode: "goinstall"
+          # install-mode: "goinstall"
       - name: Run golangci-lint on vrfs-fs
         uses: golangci/golangci-lint-action@v3
         with:
