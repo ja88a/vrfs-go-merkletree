@@ -7,14 +7,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (g *FileServiceServer) logError(err error) error {
+func (g *FileStorageService) logError(err error) error {
 	if err != nil {
-		g.l.Debug(err)
+		g.l.Error(err)
 	}
 	return err
 }
 
-func (g *FileServiceServer) contextError(ctx context.Context) error {
+func (g *FileStorageService) contextError(ctx context.Context) error {
 	switch ctx.Err() {
 	case context.Canceled:
 		return g.logError(status.Error(codes.Canceled, "request is canceled"))

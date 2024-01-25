@@ -19,26 +19,28 @@ import (
 )
 
 // Execution context of the service
-type FileServiceServer struct {
+type FileStorageService struct {
 	pb.UnimplementedFileServiceServer
 	l   *logger.Logger
 	cfg *config.Config
 }
 
 // Init the service execution context
-func New(l *logger.Logger, cfg *config.Config) *FileServiceServer {
-	return &FileServiceServer{
+func New(l *logger.Logger, cfg *config.Config) *FileStorageService {
+	return &FileStorageService{
 		l:   l,
 		cfg: cfg,
 	}
 }
 
-// Handler of file upload requests
+// Upload is the method for handling the file upload requests
 // Manages large files upload by supporting the streaming of data chunks
-func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
+func (g *FileStorageService) Upload(stream pb.FileService_UploadServer) error {
 	file := NewFile()
 	var fileSize uint32
 	fileSize = 0
+
+	// Ensure the file closure in case of interruptions
 	defer func() {
 		if err := file.OutputFile.Close(); err != nil {
 			g.l.Error("Failed to close output file '%v'\nError: %v", file.FilePath, err)
@@ -60,7 +62,7 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 		}
 		chunk := req.GetChunk()
 		fileSize += uint32(len(chunk))
-		g.l.Debug("Received a chunk with size: %d", fileSize)
+		//g.l.Debug("Received a chunk with size: %d", fileSize)
 		if err := file.Write(chunk); err != nil {
 			return g.logError(status.Error(codes.Internal, err.Error()))
 		}
@@ -73,12 +75,12 @@ func (g *FileServiceServer) Upload(stream pb.FileService_UploadServer) error {
 }
 
 // Utility method for computing the file path of a storage bucket out of its ID
-func (g *FileServiceServer) computeBucketFilePath(bucketId string) string {
+func (g *FileStorageService) computeBucketFilePath(bucketId string) string {
 	return g.cfg.FilesStorage.Location + "/" + bucketId
 }
 
-// Handle the request for retrieving the file hashes of a given storage bucket
-func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.BucketFileHashesRequest) (*pb.BucketFileHashesResponse, error) {
+// BucketFileHashes is a method for handling the requests for retrieving the file hashes of a given storage bucket
+func (g *FileStorageService) BucketFileHashes(ctx context.Context, req *pb.BucketFileHashesRequest) (*pb.BucketFileHashesResponse, error) {
 	g.l.Info("Handle request for the file hashes of bucket '%v'", req.GetBucketId())
 	bucketFilePath := g.computeBucketFilePath(req.GetBucketId())
 
@@ -110,8 +112,8 @@ func (g *FileServiceServer) BucketFileHashes(ctx context.Context, req *pb.Bucket
 	return &pb.BucketFileHashesResponse{FileHashes: fileHashes}, nil
 }
 
-// Handle a request for a file download
-func (g *FileServiceServer) Download(req *pb.FileDownloadRequest, server pb.FileService_DownloadServer) error {
+// Download is the method for handling a request for a file download
+func (g *FileStorageService) Download(req *pb.FileDownloadRequest, server pb.FileService_DownloadServer) error {
 	g.l.Info("Handle download request: bucket '%v' file #%d", req.GetBucketId(), req.FileIndex)
 
 	fileIndex := int(req.GetFileIndex())
@@ -169,6 +171,8 @@ Loop:
 	return nil
 }
 
+// getFile is an internal method for converting locally stored files into a streamable content 
+// with corresponding metadata, for clients' file download operations
 func getFile(filePaths []string, fileIndex int) (*rpcfile.File, error) {
 	filePath := filePaths[fileIndex]
 	fileData, err := os.ReadFile(filePath)

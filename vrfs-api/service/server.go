@@ -78,7 +78,7 @@ func (g *VerifiableRemoteFileStorageServer) UploadDone(ctx context.Context, in *
 	defer cancel()
 
 	// Request to the FS for providing the list of the file hashes present in its bucket
-	// Alternative: download all the bucket files and compute the file hashes here! But we'll avoid consuming unnecessary bandwidth
+	// Alternative: download all the bucket files and compute the file hashes here! But we'll avoid consuming unnecessary network bandwidth
 	resp, err := g.fsClient.BucketFileHashes(ctxFS, &pbfs.BucketFileHashesRequest{BucketId: bucketId})
 	if err != nil {
 		respErr := fmt.Errorf("failed to retrieve files hashes from FS for fileset '%v' (bucket: '%v')\n%w", in.GetFilesetId(), bucketId, err)
