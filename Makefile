@@ -25,8 +25,8 @@ protos:
 
 lint:
 	golangci-lint run libs/config/... libs/db/... libs/logger/... \
-		libs/merkletree libs/rpcapi/... \
-		vrfs-fs vrfs-api client
+		libs/merkletree/... libs/rpcapi/... \
+		vrfs-fs/... vrfs-api/... client/...
 
 run-vrfs:
 	go run vrfs-api/main.go
