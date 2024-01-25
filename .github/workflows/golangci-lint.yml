@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   golangci:
-    name: lint all VRFS modules
+    name: Lint code of all VRFS modules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
         with:
           go-version: '1.21'
           cache: false
-      - name: golangci-lint vrfs-api
+      - name: Run golangci-lint on vrfs-api
         uses: golangci/golangci-lint-action@v3
         with:
           # Require: The version of golangci-lint to use.
@@ -54,44 +54,14 @@ jobs:
           # skip-build-cache: true
 
           # Optional: The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
-          # install-mode: "goinstall"
-      - name: golangci-lint vrfs-fs
+          install-mode: "goinstall"
+      - name: Run golangci-lint on vrfs-fs
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.55
           working-directory: ./vrfs-fs
-      - name: golangci-lint vrfs-client
+      - name: Run golangci-lint on Client
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.55
           working-directory: ./client
-
-  # golangci-vrfs-fs:
-  #   name: lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-go@v4
-  #       with:
-  #         go-version: '1.21'
-  #         cache: false
-  #     - name: golangci-lint
-  #       uses: golangci/golangci-lint-action@v3
-  #       with:
-  #         version: v1.54
-  #         working-directory: ./vrfs-fs
-  # golangci-client:
-  #   name: lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-go@v4
-  #       with:
-  #         go-version: '1.21'
-  #         cache: false
-  #     - name: golangci-lint
-  #       uses: golangci/golangci-lint-action@v3
-  #       with:
-  #         version: v1.54
-  #         working-directory: ./client
-        

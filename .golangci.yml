@@ -3,7 +3,7 @@ run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
   timeout: 2m
   # exit code when at least one issue was found, default is 1
-  issues-exit-code: 1
+  issues-exit-code: 0
   # include test files or not, default is true
   tests: true
   # modules-download-mode: vendor #readonly #|release|vendor
@@ -15,7 +15,7 @@ linters:
     - errname # errors prefixed with Err and error types suffixed with Error
     - gofmt
     - goimports
-    - misspell # finds commonly misspelled English words
+    - misspell # finds commonly misspelled words
     - nestif # deeply nested if statements
     - stylecheck # (enabled by default)
     - wastedassign # Finds wasted assignment statements

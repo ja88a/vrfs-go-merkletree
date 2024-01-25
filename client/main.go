@@ -79,7 +79,7 @@ func main() {
 		fmt.Printf("VRFS Client v0.1.0 2023-11\n\nNo action specified.\n\nHelp command: `vrfs-client -h`\n\n")
 		err = appCtx.Vrfs.HandlePingReq()
 		if err != nil {
-			log.Fatalf("VRFS backend service is not reachable\n%v", err)
+			log.Printf("VRFS backend service is not reachable\n%v", err)
 		}
 	}
 }
