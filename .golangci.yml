@@ -52,12 +52,12 @@ linters:
         "all",
         # Disable rules:
         "-ST1000", # Package comments.
-        #"-ST1003", # Capitalizations in fields' camel case name, e.g. 'nameID' instead of 'nameId'
+        "-ST1003", # Capitalizations in fields' camel case name, e.g. 'nameID' instead of 'nameId'
       ]
 
       initialisms: [
         # Common.
-        "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA",
+        "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "IP", "JSON", "QPS", "RAM", "RPC", "SLA",
         "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS",
         "SIP", "RTP", "AMQP", "DB", "TS",
         # Domain specific.
