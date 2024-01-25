@@ -4,7 +4,7 @@ package app
 const DEBUG = false
 
 // Prefix for the filesets name - default
-const FILESET_PREFIX = "fs-"
+const FilesetNamePrefix string = "fs-"
 
 // Mock for the default Tenant ID
-const TENANT_MOCK string = "tmock"
+const TenantIDMock string = "tmock"
