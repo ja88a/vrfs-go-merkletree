@@ -13,19 +13,19 @@ import (
 
 // DownloadFile is the method for downloading a file, from its index as part of a known fileset, to the specified local directory
 // from the Remote FS store and Verify its consistency, i.e. the hash of the downloaded file and
-// the merkle proofs downloaded from VRFS are verified against the expected fileset's merkle tree root
+// the merkle proofs downloaded from VRFS are verified against the expected fileset's merkle tree root.
 //
-// The specified fileset ID is the one provided by the VRFS service when the fileset was initially uploaded
-// The local directory FS path for the file to be downloaded must also to specified, e.g. './localdowndir/'
+// The specified fileset ID is the one provided by the VRFS service when the fileset was initially uploaded.
+// The local directory FS path for the file to be downloaded must also to specified, e.g. './localdowndir/'.
 //
-// An error is returned in case an issue is met
-func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirPath string) error {
+// An error is returned in case an issue is met.
+func (ctx *ClientContext) DownloadFile(fileSetID string, fileIndex int, downDirPath string) error {
 	// Inputs validation
-	if len(fileSetId) == 0 {
-		return fmt.Errorf("unsupported fileset ID `%v`: it must be specified", fileSetId)
+	if len(fileSetID) == 0 {
+		return fmt.Errorf("unsupported fileset ID `%v`: it must be specified", fileSetID)
 	}
-	if !strings.HasPrefix(fileSetId, "fs-") {
-		return fmt.Errorf("unsupported fileset ID `%v`: it must be prefixed with `fs-` and made of its merkletree root hash value as provided by the VRFS when uploaded", fileSetId)
+	if !strings.HasPrefix(fileSetID, "fs-") {
+		return fmt.Errorf("unsupported fileset ID `%v`: it must be prefixed with `fs-` and made of its merkletree root hash value as provided by the VRFS when uploaded", fileSetID)
 	}
 	if fileIndex <= 0 {
 		return fmt.Errorf("unsupported file index `%v`: it must be a positive integer >= 0", fileIndex)
@@ -34,28 +34,31 @@ func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirP
 		return fmt.Errorf("unsupported local download directory path `%v`: it must be specified", downDirPath)
 	}
 
-	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetId)
+	log.Printf("Downloading file #%v part of fileset '%v'", fileIndex, fileSetID)
 
 	// 1. Retrieve the necessary download info & verification proofs from VRFS
-	bucketId, mtProof, err := ctx.Vrfs.HandleDownloadFileInfoReq(TENANT_MOCK, fileSetId, fileIndex)
+	bucketID, mtProof, err := ctx.Vrfs.HandleDownloadFileInfoReq(TenantIDMock, fileSetID, fileIndex)
 	if err != nil {
-		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetId, err)
+		return fmt.Errorf("failed at retrieving file download info from VRFS for file %d in fileset '%v'\n%w", fileIndex, fileSetID, err)
 	}
 	if mtProof == nil {
 		// Trigger an actual error & end the download process as long as file is not verifiable
-		return fmt.Errorf("missing the merkle tree proofs from VRFS to check for the consistency of file %4d in fileset '%v'", fileIndex, fileSetId)
+		return fmt.Errorf("missing the merkle tree proofs from VRFS to check for the consistency of file %4d in fileset '%v'", fileIndex, fileSetID)
 	}
 
 	// 2. Save the file locally, in the client download dir
 	// Initiate the file download process from the File Storage server
-	dFile, err := ctx.Nfs.DownloadFile(bucketId, fileIndex)
+	dFile, err := ctx.Nfs.DownloadFile(bucketID, fileIndex)
 	if err != nil {
-		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetId, err)
+		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetID, err)
 	}
 
-	localDirPath := computeFilesetDownloadDir(downDirPath, fileSetId)
+	localDirPath := computeFilesetDownloadDir(downDirPath, fileSetID)
 	if _, err := os.Stat(localDirPath); os.IsNotExist(err) {
-		os.MkdirAll(localDirPath, os.ModePerm) // 511
+		err = os.MkdirAll(localDirPath, os.ModePerm) // 511
+		if err != nil {
+			return fmt.Errorf("failed to create the target local download directory `%v`\n%w", localDirPath, err)
+		}
 	}
 	localFilePath := localDirPath + "/" + dFile.Name
 	localFile, err := os.Create(localFilePath)
@@ -78,7 +81,7 @@ func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirP
 	log.Printf("File '%v' Downloaded. Hash: %x", localFilePath, fileHashes[0])
 
 	// Trick for avoiding the local storage of the fileset's MT root by the client
-	rootHashS := strings.TrimPrefix(fileSetId, FILESET_PREFIX)
+	rootHashS := strings.TrimPrefix(fileSetID, FilesetNamePrefix)
 	rootHash, err := hex.DecodeString(rootHashS)
 	if err != nil {
 		return fmt.Errorf("failed to convert root hash to hex '%v'\n%w", rootHashS, err)
@@ -100,7 +103,7 @@ func (ctx *ClientContext) DownloadFile(fileSetId string, fileIndex int, downDirP
 	return nil
 }
 
-// Compute the FS path where files of a fileset are locally stored 
-func computeFilesetDownloadDir(localFileDownloadRepo string, fileSetId string) string {
-	return localFileDownloadRepo + "/" + fileSetId
+// Compute the FS path where files of a fileset are locally stored
+func computeFilesetDownloadDir(localFileDownloadRepo string, fileSetID string) string {
+	return localFileDownloadRepo + "/" + fileSetID
 }
