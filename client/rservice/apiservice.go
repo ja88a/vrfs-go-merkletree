@@ -21,7 +21,7 @@ type VrfsService interface {
 	// Handle the request to VRFS for confirming the fileset has been correctly uploaded & stored
 	HandleUploadDoneReq(tenantId string, fileSetId string, mtRootHash []byte) (int32, string, error)
 
-	// Handle the request to VRFS for retrieving the info to download a file and check/proove it is untampered
+	// Handle the request to VRFS for retrieving the info to download a file and check/prove it is untampered
 	HandleDownloadFileInfoReq(tenantId string, fileSetId string, fileIndex int) (string, *mt.Proof, error)
 
 	// Handle a VRFS API ping request, to check for the service availability

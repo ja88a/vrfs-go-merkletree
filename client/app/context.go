@@ -8,7 +8,7 @@ import (
 
 // Client application context grouping the accesses to remote services
 type ClientContext struct {
-	// VRFS API service
+	// VRFS service
 	Vrfs rservice.VrfsService
 
 	// File Transfer service

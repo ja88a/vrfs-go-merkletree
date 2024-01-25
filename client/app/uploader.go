@@ -46,7 +46,7 @@ func (ctx *ClientContext) UploadFileset(localDirPath string, batchSize int) erro
 	}
 	log.Printf("Computed fileset MerkleTree root: %x", tree.Root)
 
-	// Request to VRFS for a bucket into which files can be remotely stored
+	// Request to VRFS for a FS bucket into which files can be remotely stored
 	fileSetId := FILESET_PREFIX + hex.EncodeToString(tree.Root)
 	status, bucketId, err := ctx.Vrfs.HandleFileBucketReq(TENANT_MOCK, fileSetId)
 	if err != nil || status < 0 {
@@ -84,7 +84,7 @@ func (ctx *ClientContext) UploadFileset(localDirPath string, batchSize int) erro
 // Batch upload of local files to the Remote FS store
 func (ctx *ClientContext) uploadFiles(bucketId string, localFilePaths []string, batchSizeMax int) error {
 	// Loop over the local files to trigger their parallel upload
-	// TODO Batch upload of files: no more than X in parallel
+	// TODO Concurrent batch upload of files: no more than X in parallel
 	for _, filePath := range localFilePaths {
 		if err := ctx.Nfs.UploadFile(bucketId, filePath); err != nil {
 			return fmt.Errorf("failed to batch upload the file `%v`\n%w", filePath, err)
