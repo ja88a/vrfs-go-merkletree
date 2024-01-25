@@ -94,7 +94,7 @@ output:
   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
   # Output path can be either `stdout`, `stderr` or path to the file to write to.
   # Example: "checkstyle:report.json,colored-line-number"
-  format: "json" # github-actions,colored-line-number
+  format: "github-actions,colored-line-number"
   # Print lines of code with issue.
   print-issued-lines: true
   # Print linter name in the end of issue text.

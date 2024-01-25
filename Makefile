@@ -23,6 +23,11 @@ protos:
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		libs/rpcapi/protos/v1/vrfs-fs/fileserver.proto
 
+lint:
+	golangci-lint run libs/config/... libs/db/... libs/logger/... \
+		libs/merkletree libs/rpcapi/... \
+		vrfs-fs vrfs-api client
+
 run-vrfs:
 	go run vrfs-api/main.go
 

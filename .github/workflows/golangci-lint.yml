@@ -14,8 +14,8 @@ permissions:
     checks: write
 
 jobs:
-  golangci-vrfs-api:
-    name: lint
+  golangci:
+    name: lint all VRFS modules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
         with:
           go-version: '1.21'
           cache: false
-      - name: golangci-lint
+      - name: golangci-lint vrfs-api
         uses: golangci/golangci-lint-action@v3
         with:
           # Require: The version of golangci-lint to use.
@@ -38,8 +38,7 @@ jobs:
           #
           # Note: By default, the `.golangci.yml` file should be at the root of the repository.
           # The location of the configuration file can be changed by using `--config=`
-          # args: --timeout=30m --config=/my/path/.golangci.yml --issues-exit-code=0 
-          args: --config=./.golangci.yml
+          # args: --timeout=30m --config=/my/path/.golangci.yml --issues-exit-code=0
 
           # Optional: show only new issues if it's a pull request. The default value is `false`.
           # only-new-issues: true
@@ -56,6 +55,17 @@ jobs:
 
           # Optional: The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
           # install-mode: "goinstall"
+      - name: golangci-lint vrfs-fs
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.55
+          working-directory: ./vrfs-fs
+      - name: golangci-lint vrfs-client
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.55
+          working-directory: ./client
+
   # golangci-vrfs-fs:
   #   name: lint
   #   runs-on: ubuntu-latest
