@@ -24,19 +24,25 @@
 
 The Verifiable Remote File Storage service aims at checking the consistency of remotely stored files, uploaded as part of a fileset, then downloaded individually.
 
-Files are verified as untampered on client side, based on the retrieved files' hash, the known MerkleTree root hash of the corresponding fileset and the MerkleTree proofs provided by the service for each file, computed and indexed when the fileset is uploaded.
+Files are verified as untampered on client side, based on the retrieved files' hash, the known MerkleTree root hash of the corresponding fileset and the MerkleTree proofs provided by the service for each file.
 
-### Technical Components
+The Merkle Tree root and proofs are computed and stored by the VRFS service once the fileset has been uploaded on the FileStorage service.
+
+Refer to the architecture [section](#protocol-overview) for more info about the opted protocol.
+
+### Technical Insights
 
 This is the mono-repository for the Go-based implementation of 2 backend services and 1 client CLI.
 
 3 main components are implemented:
 
 1. The VRFS API service - The core component of this protocol, exposing a gRPC API
-2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually. It also supports the retrieval of the stored files' hashes
-3. A client CLI to execute the 2 main upload and download operations, along with MerkleTree root computation and the proof-based file hash verifications
+2. A basic File Storage service exposing a gRPC API to batch upload files and download them individually. It also supports the retrieval of its stored files' hash.
+3. A client CLI to execute the 2 main upload and download operations, along with a MerkleTree root computation and the proof-based file hash verifications
 
 The gRPC protocol is used for optimal client-server and server-to-server communications.
+
+During the upload and download operations, the files' data are streamed and a maximum chunk size can be specified. Large file sizes are supported. Interruptions during those processes are properly handled.
 
 A complete docker compose setup enables an easy local build, deployment & run.
 
@@ -64,8 +70,8 @@ enables running clean instances.
 
 Refer to the respective Dockerfiles:
 
-* VRFS API server: [`./vrfs-api`](./vrfs-api/Dockerfile)
-* File Storage server: [`./vrfs-fs`](./vrfs-fs/Dockerfile)
+* VRFS API server: [`./vrfs-api/DockerFile`](./vrfs-api/Dockerfile)
+* File Storage server: [`./vrfs-fs/DockerFile`](./vrfs-fs/Dockerfile)
 
 Notice there the monorepo specific dependencies management/requirements in case of `replace` in the respective `go.mod` files.
 
@@ -227,6 +233,8 @@ Overview of a considered scalable solution to be deployed:
 
 ## Development status
 
+### Implemented
+
 The depicted files' upload, download & verification protocol is implemented and finalized.
 
 Efficient serialization of the MerkleTree Proofs might be further improved when they are persisted in the DB, on fileset upload verification/confirmation, then retrieved and communicated to clients on every file download info requests for later verification.
@@ -243,9 +251,7 @@ For the file hashes computation, constituing the MerkleTree leaf values, the SHA
 Alternative file hashing functions might be considered to adapt and/or optimize the computations runtime.
 Notice the fact that the client and the FS server require using the same hashing function on files since both build a Merkle Tree out of the file hashes.
 
-## Production Readiness
-
-### Required for Production
+### Production Readiness
 
 #### Access & Traffic management
 
@@ -325,4 +331,4 @@ Minor packaging changes have been made. Custom config and fileset specific utili
 
 The GNU Affero General Public License version 3 (AGPL v3, 2007) applies to this mono-repository and all of its software modules.
 
-You can refer to the dedicated [licence file](./LICENSE).
+You can refer to the dedicated [licence](./LICENSE) files.
