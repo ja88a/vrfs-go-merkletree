@@ -8,44 +8,45 @@ import (
 )
 
 type (
-	// Config -.
+	// Config is the container of the config settings
 	Config struct {
 		App          `yaml:"app"`
 		GRPC         `yaml:"grpc"`
 		FilesStorage `yaml:"files_storage"`
 		Log          `yaml:"logger"`
-		Cache				 `yaml:"cache"`
-		FSAPI				 `yaml:"fsapi"`
+		Cache        `yaml:"cache"`
+		FSAPI        `yaml:"fsapi"`
 	}
 
-	// App -.
+	// App is the structure for the application settings
 	App struct {
 		Name    string `env-required:"true" yaml:"name"    env:"APP_NAME"`
 		Version string `env-required:"true" yaml:"version" env:"APP_VERSION"`
 	}
 
-	// FRPC -.
+	// GRPC is the structure for the gRPC API related settings
 	GRPC struct {
 		Port string `yaml:"port" env:"GRPC_PORT"`
 	}
 
+	// FilesStorage is the structure for local files management settings
 	FilesStorage struct {
 		Location string `yaml:"location" env:"FILES_LOCATION"`
 	}
 
-	// Log -.
+	// Log is the structure for the log management settings
 	Log struct {
 		Level string `env-required:"true" yaml:"log_level" env:"LOG_LEVEL"`
 	}
-	
-	// Cache -.
+
+	// Cache is the structure for the cache settings
 	Cache struct {
 		Endpoint string `yaml:"endpoint" env:"REDIS_ENDPOINT"`
-		User string `yaml:"user" env:"REDIS_USER"`
+		User     string `yaml:"user" env:"REDIS_USER"`
 		Password string `yaml:"password" env:"REDIS_PASSWORD"`
 	}
 
-	// FSAPI -.
+	// FSAPI is for defining settings about a remote FileStorage service
 	FSAPI struct {
 		Endpoint string `yaml:"endpoint" env:"FSAPI_ENDPOINT"`
 	}
@@ -55,7 +56,7 @@ type (
 func NewConfig(configFileName string) (*Config, error) {
 	cfg := &Config{}
 
-	configFilePath := "./config/"+configFileName+".yml"
+	configFilePath := "./config/" + configFileName + ".yml"
 	err := cleanenv.ReadConfig(configFilePath, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("Config file error\n%w", err)

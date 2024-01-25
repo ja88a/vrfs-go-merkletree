@@ -1,6 +1,6 @@
 module github.com/ja88a/vrfs-go-merkletree/libs/rpcapi
 
-go 1.21
+go 1.21.4
 
 require (
 	google.golang.org/grpc v1.59.0

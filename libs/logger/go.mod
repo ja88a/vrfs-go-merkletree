@@ -1,6 +1,6 @@
 module github.com/ja88a/vrfs-go-merkletree/libs/logger
 
-go 1.21
+go 1.21.4
 
 require github.com/rs/zerolog v1.31.0
 

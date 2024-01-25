@@ -1,6 +1,6 @@
 module github.com/ja88a/vrfs-go-merkletree/libs/db
 
-go 1.21
+go 1.21.4
 
 // replace github.com/ja88a/vrfs-go-merkletree/libs/config v0.0.0 => ../config
 

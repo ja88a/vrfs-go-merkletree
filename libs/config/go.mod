@@ -1,6 +1,6 @@
 module github.com/ja88a/vrfs-go-merkletree/libs/config
 
-go 1.21
+go 1.21.4
 
 require github.com/ilyakaznacheev/cleanenv v1.5.0
 
