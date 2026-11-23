@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -178,6 +177,7 @@ func (g *FileStorageService) Download(req *pb.FileDownloadRequest, server pb.Fil
 		g.l.Warn(respMsg)
 		return status.Error(codes.NotFound, respMsg)
 	}
+	defer srcFile.Close()
 
 	err = server.SendHeader(srcFile.Metadata())
 	if err != nil {
@@ -187,36 +187,37 @@ func (g *FileStorageService) Download(req *pb.FileDownloadRequest, server pb.Fil
 	}
 
 	const chunkSize = 1024 * 3
-	chunk := &pb.FileDownloadResponse{Chunk: make([]byte, chunkSize)}
-	var n int
-Loop:
+	buf := make([]byte, chunkSize)
 	for {
-		n, err = srcFile.Read(chunk.Chunk)
-		switch err {
-		case nil:
-		case io.EOF:
-			break Loop
-		default:
-			return status.Errorf(codes.Internal, "failed transfering file chunk - io.ReadAll on %v: %v", srcFile.Name, err)
+		n, err := srcFile.Read(buf)
+		if n > 0 {
+			if serverErr := server.Send(&pb.FileDownloadResponse{Chunk: buf[:n]}); serverErr != nil {
+				return status.Errorf(codes.Internal, "failed transfering file chunk - server.Send on %v: %v", srcFile.Name, serverErr)
+			}
 		}
-		chunk.Chunk = chunk.Chunk[:n]
-		serverErr := server.Send(chunk)
-		if serverErr != nil {
-			return status.Errorf(codes.Internal, "failed transfering file chunk - server.Send on %v: %v", srcFile.Name, serverErr)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed transfering file chunk - read on %v: %v", srcFile.Name, err)
 		}
 	}
-
-	return nil
 }
 
-// getFile is an internal method for converting locally stored files into a streamable content 
-// with corresponding metadata, for clients' file download operations
+// getFile is an internal method for opening a locally stored file as a streamable content
+// with corresponding metadata, for clients' file download operations.
+// Its data is read on demand, so that the response headers do not wait for the whole file.
 func getFile(filePaths []string, fileIndex int) (*rpcfile.File, error) {
 	filePath := filePaths[fileIndex]
-	fileData, err := os.ReadFile(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
+	info, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, err
+	}
 	fileName := filepath.Base(filePath)
-	return rpcfile.NewFile(fileName, filepath.Ext(fileName), len(fileData), bytes.NewReader(fileData)), nil
+	return rpcfile.NewFile(fileName, filepath.Ext(fileName), int(info.Size()), file), nil
 }

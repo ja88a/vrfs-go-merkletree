@@ -211,7 +211,7 @@ File hashes, the MerkleTree leaf values, use SHA2-256. Alternative hashing funct
 | Upload confirmation trusts the hashes reported by storage, so a dishonest server is only caught at download | Challenge storage for file data before deleting local copies |
 | A proof shows membership in the fileset, not the requested index | Check the proof path against the index |
 | The leaf hash joins content and name without a delimiter | Length-prefix fields in a versioned format |
-| Files are fully loaded in memory for hashing and serving | Stream hashing and reads |
+| Files are fully loaded in memory for hashing | Stream the hash computation |
 
 ### Production Readiness & Further Improvements
 

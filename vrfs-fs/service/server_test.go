@@ -253,6 +253,34 @@ func TestDownloadSupportsNonASCIIFileNames(t *testing.T) {
 	}
 }
 
+func TestGetFileReadsContentOnDemand(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "a.txt")
+	if err := os.WriteFile(path, []byte("original"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	file, err := getFile([]string{path}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if file.Name != "a.txt" || file.Size != len("original") {
+		t.Fatalf("unexpected metadata: %+v", file)
+	}
+
+	// A copy buffered when opening the file would still hold the original content.
+	if err := os.WriteFile(path, []byte("modified"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "modified" {
+		t.Fatalf("content was read before streaming: got %q", got)
+	}
+}
+
 func TestDownloadRejectsIndexPastTheEnd(t *testing.T) {
 	s := startServer(t)
 	if _, err := s.upload(t, "bucket-1", "a.txt", []byte("x")); err != nil {
