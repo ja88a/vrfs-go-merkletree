@@ -2,13 +2,17 @@ package app
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	mt "github.com/ja88a/vrfs-go-merkletree/libs/merkletree"
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
+	rpcfile "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/file"
 )
 
 // DownloadFile is the method for downloading a file, from its index as part of a known fileset, to the specified local directory
@@ -27,8 +31,8 @@ func (ctx *ClientContext) DownloadFile(fileSetID string, fileIndex int, downDirP
 	if !strings.HasPrefix(fileSetID, "fs-") {
 		return fmt.Errorf("unsupported fileset ID `%v`: it must be prefixed with `fs-` and made of its merkletree root hash value as provided by the VRFS when uploaded", fileSetID)
 	}
-	if fileIndex <= 0 {
-		return fmt.Errorf("unsupported file index `%v`: it must be a positive integer >= 0", fileIndex)
+	if fileIndex < 0 {
+		return fmt.Errorf("unsupported file index `%v`: it must be an integer >= 0", fileIndex)
 	}
 	if len(downDirPath) == 0 {
 		return fmt.Errorf("unsupported local download directory path `%v`: it must be specified", downDirPath)
@@ -46,39 +50,45 @@ func (ctx *ClientContext) DownloadFile(fileSetID string, fileIndex int, downDirP
 		return fmt.Errorf("missing the merkle tree proofs from VRFS to check for the consistency of file %4d in fileset '%v'", fileIndex, fileSetID)
 	}
 
-	// 2. Save the file locally, in the client download dir
+	// 2. Save the file in a temporary location of the client download dir
 	// Initiate the file download process from the File Storage server
 	dFile, err := ctx.Nfs.DownloadFile(bucketID, fileIndex)
 	if err != nil {
 		return fmt.Errorf("download process has failed for file %d of fileset '%v'\n%w", fileIndex, fileSetID, err)
 	}
+	defer dFile.Close()
+
+	// The file name is supplied by the server: it must not be able to leave the download directory
+	if !rpcfile.IsSafeName(dFile.Name) {
+		return fmt.Errorf("unsafe file name %q received for file %d of fileset '%v'", dFile.Name, fileIndex, fileSetID)
+	}
 
 	localDirPath := computeFilesetDownloadDir(downDirPath, fileSetID)
-	if _, err := os.Stat(localDirPath); os.IsNotExist(err) {
-		err = os.MkdirAll(localDirPath, os.ModePerm) // 511
-		if err != nil {
-			return fmt.Errorf("failed to create the target local download directory `%v`\n%w", localDirPath, err)
-		}
+	if err := os.MkdirAll(localDirPath, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create the target local download directory `%v`\n%w", localDirPath, err)
 	}
-	localFilePath := localDirPath + "/" + dFile.Name
-	localFile, err := os.Create(localFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to create local file for download '%v' \n%w", localFilePath, err)
-	}
-	defer localFile.Close()
 
-	_, err = localFile.ReadFrom(dFile)
+	// A temporary directory lets the file keep its name, which is part of its hash,
+	// and being on the same filesystem makes the final rename atomic
+	tmpDirPath, err := os.MkdirTemp(localDirPath, ".download-*")
 	if err != nil {
-		return fmt.Errorf("failed to stream file data to '%v' \n%w", localFilePath, err)
+		return fmt.Errorf("failed to create a temporary download directory in `%v`\n%w", localDirPath, err)
+	}
+	defer os.RemoveAll(tmpDirPath)
+
+	tmpFilePath := filepath.Join(tmpDirPath, dFile.Name)
+	if err := saveToFile(tmpFilePath, dFile); err != nil {
+		return fmt.Errorf("failed to stream file data to '%v' \n%w", tmpFilePath, err)
 	}
 
 	// 3. Verify the downloaded file's hash based on the fileset's MerkleTree root
 	// and the MerkleTree proofs retrieved from VRFS
-	fileHashes, err := mtutils.ComputeFileHashes([]string{localFilePath})
+	localFilePath := filepath.Join(localDirPath, dFile.Name)
+	fileHashes, err := mtutils.ComputeFileHashes([]string{tmpFilePath})
 	if err != nil {
-		return fmt.Errorf("failed to compute hash for file '%v' \n%w", localFilePath, err)
+		return fmt.Errorf("failed to compute hash for file '%v' \n%w", tmpFilePath, err)
 	}
-	log.Printf("File '%v' Downloaded. Hash: %x", localFilePath, fileHashes[0])
+	log.Printf("File '%v' Downloaded. Hash: %x", dFile.Name, fileHashes[0])
 
 	// Trick for avoiding the local storage of the fileset's MT root by the client
 	rootHashS := strings.TrimPrefix(fileSetID, FilesetNamePrefix)
@@ -93,14 +103,29 @@ func (ctx *ClientContext) DownloadFile(fileSetID string, fileIndex int, downDirP
 	mtConfig := mt.MerkleTreeDefaultConfig(false)
 	fileValid, err := mt.Verify(fileBlock, mtProof, rootHash, mtConfig)
 	if err != nil {
-		return fmt.Errorf("failed to verify the downloaded file '%v' \n%w", localFilePath, err)
+		return fmt.Errorf("failed to verify the downloaded file '%v' \n%w", dFile.Name, err)
 	}
 	if !fileValid {
-		return fmt.Errorf("downloaded file '%v' fails the verification process - Root: %x  ProofSiblings: %d  Hash: %x", localFilePath, rootHash, len(mtProof.Siblings), fileHashes[0])
+		return fmt.Errorf("downloaded file '%v' fails the verification process - Root: %x  ProofSiblings: %d  Hash: %x", dFile.Name, rootHash, len(mtProof.Siblings), fileHashes[0])
+	}
+
+	// 4. Only a verified file reaches its final path, replacing any previous copy atomically
+	if err := os.Rename(tmpFilePath, localFilePath); err != nil {
+		return fmt.Errorf("failed to move the verified file to '%v' \n%w", localFilePath, err)
 	}
 	log.Printf("Downloaded file '%v': Successfully verified", localFilePath)
 
 	return nil
+}
+
+// saveToFile writes the content of r to a new file at the specified path
+func saveToFile(path string, r io.Reader) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	_, err = file.ReadFrom(r)
+	return errors.Join(err, file.Close())
 }
 
 // Compute the FS path where files of a fileset are locally stored

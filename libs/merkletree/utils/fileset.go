@@ -72,13 +72,19 @@ func ListDirFilePaths(rootDir string) ([]string, error) {
 	}
 
 	err := filepath.WalkDir(rootDir, func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if !info.IsDir() {
 			filePaths = append(filePaths, path)
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list files in directory '%v'\n%w", rootDir, err)
+	}
 
-	return filePaths, err
+	return filePaths, nil
 }
 
 // Utility method for extracting the longest common prefix among a set of provided strings

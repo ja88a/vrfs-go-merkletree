@@ -2,10 +2,14 @@ package app
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"sync"
+	"sync/atomic"
 
+	"github.com/ja88a/vrfs-go-merkletree/client/rservice"
 	mtutils "github.com/ja88a/vrfs-go-merkletree/libs/merkletree/utils"
 )
 
@@ -22,8 +26,11 @@ func (ctx *ClientContext) UploadFileset(localDirPath string, concurrencyMax int)
 
 	// Get the list of available local file paths
 	files, err := mtutils.ListDirFilePaths(localDirPath)
-	if err != nil || len(files) == 0 {
-		return fmt.Errorf("no local files found in dir '%v'\n%w", localDirPath, err)
+	if err != nil {
+		return fmt.Errorf("failed to list local files in dir '%v'\n%w", localDirPath, err)
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("no local files found in dir '%v'", localDirPath)
 	}
 
 	log.Printf("Upload - Found %d files in local dir '%v'", len(files), localDirPath)
@@ -90,38 +97,44 @@ func (ctx *ClientContext) uploadFile(bucketID string, filePath string) error {
 	return nil
 }
 
+// uploadFilesConcurrently uploads the files with a bounded concurrency and waits for all of them.
+// Every failure is reported. No new upload is started once a shutdown signal has interrupted one.
 func (ctx *ClientContext) uploadFilesConcurrently(bucketID string, localFilePaths []string, maxConcurrentUploads int) error {
 	// Buffered channel for concurrency control to upload the files
-	sem := make(chan bool, maxConcurrentUploads)
+	sem := make(chan struct{}, maxConcurrentUploads)
 
-	// Channel for collecting file upload errors
-	errChan := make(chan error, len(localFilePaths))
+	errs := make([]error, len(localFilePaths))
+	var interrupted atomic.Bool
+	var wg sync.WaitGroup
 
 	// Loop over the files
-	for _, file := range localFilePaths {
+	for i, file := range localFilePaths {
 		// Acquire a slot
-		sem <- true
+		sem <- struct{}{}
+		if interrupted.Load() {
+			<-sem
+			break
+		}
 
 		// Start a new goroutine to upload this file
-		go func(file string) {
+		wg.Add(1)
+		go func(i int, file string) {
+			defer wg.Done()
 			defer func() {
 				// Release the slot in the semaphore
 				<-sem
 			}()
 
-			// Upload the file and send any errors to the error channel
-			if err := ctx.uploadFile(bucketID, file); err != nil {
-				errChan <- err
+			errs[i] = ctx.uploadFile(bucketID, file)
+			if errors.Is(errs[i], rservice.ErrUploadInterrupted) {
+				interrupted.Store(true)
 			}
-		}(file)
+		}(i, file)
 	}
+	wg.Wait()
 
-	// Check if any errors occurred during the uploads
-	close(errChan)
-	for err := range errChan {
-		if err != nil {
-			return err
-		}
+	if err := errors.Join(errs...); err != nil {
+		return err
 	}
 
 	log.Printf("%d files uploaded to the remote FS bucket '%v'", len(localFilePaths), bucketID)

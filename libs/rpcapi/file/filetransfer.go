@@ -2,7 +2,9 @@ package file
 
 import (
 	"io"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"google.golang.org/grpc/metadata"
 )
@@ -23,29 +25,39 @@ type File struct {
 	Size      int
 }
 
+// Metadata returns the gRPC headers describing the file.
+// The name and extension are percent-encoded since gRPC headers only accept printable ASCII.
 func (f *File) Metadata() metadata.MD {
 	return metadata.New(map[string]string{
-		HeaderFileName: f.Name,
-		HeaderFileType: f.Extension,
+		HeaderFileName: url.PathEscape(f.Name),
+		HeaderFileType: url.PathEscape(f.Extension),
 		HeaderFileSize: strconv.Itoa(f.Size),
 	})
 }
 
 func NewFromMetadata(md metadata.MD, r io.Reader) *File {
-	var name, fileType string
+	name := decodeHeader(md, HeaderFileName)
+	fileType := decodeHeader(md, HeaderFileType)
 	var size int
 
-	if names := md.Get(HeaderFileName); len(names) > 0 {
-		name = names[0]
-	}
-	if types := md.Get(HeaderFileType); len(types) > 0 {
-		fileType = types[0]
-	}
 	if sizes := md.Get(HeaderFileSize); len(sizes) > 0 {
 		size, _ = strconv.Atoi(sizes[0])
 	}
 
 	return &File{Name: name, Extension: fileType, Size: size, r: r}
+}
+
+// decodeHeader returns the decoded value of a percent-encoded header, or an empty string if it is missing or malformed
+func decodeHeader(md metadata.MD, key string) string {
+	values := md.Get(key)
+	if len(values) == 0 {
+		return ""
+	}
+	value, err := url.PathUnescape(values[0])
+	if err != nil {
+		return ""
+	}
+	return value
 }
 
 func NewFile(name string, extension string, size int, r io.Reader) *File {
@@ -54,4 +66,17 @@ func NewFile(name string, extension string, size int, r io.Reader) *File {
 
 func (f *File) Read(p []byte) (n int, err error) {
 	return f.r.Read(p)
+}
+
+// Close releases the underlying reader when it supports it, which stops any transfer still feeding it
+func (f *File) Close() error {
+	if c, ok := f.r.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
+}
+
+// IsSafeName reports whether name is a single path segment that cannot leave the directory it is joined to
+func IsSafeName(name string) bool {
+	return name != "" && name != "." && name != ".." && !strings.ContainsAny(name, "/\\\x00")
 }

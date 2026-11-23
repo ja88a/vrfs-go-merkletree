@@ -14,6 +14,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      GO_PACKAGES: ./client/... ./libs/config/... ./libs/db/... ./libs/logger/... ./libs/merkletree/... ./libs/rpcapi/... ./vrfs-api/... ./vrfs-fs/...
     steps:
     - uses: actions/checkout@v3
 
@@ -32,9 +34,11 @@ jobs:
         go build -v -o ./dist/vrfs-fs ./vrfs-fs
         go build -v -o ./dist/vrfs-api ./vrfs-api
 
-    - name: Test
-      run: go test -v ./client
+    - name: Vet
+      run: go vet $GO_PACKAGES
 
-    - name: Run
-      run: |
-        ./dist/vrfs-client
+    - name: Test
+      run: go test -race -count=1 $GO_PACKAGES
+
+    - name: Smoke test the client CLI
+      run: ./dist/vrfs-client -h
