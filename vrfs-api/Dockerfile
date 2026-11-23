@@ -2,7 +2,7 @@
 # BASE FOR VERSIONING
 ###################
 
-FROM golang:1.21-alpine3.18 As base
+FROM golang:1.26-alpine3.23 As base
 
 # Root working dir
 WORKDIR /app-src
@@ -21,7 +21,7 @@ RUN semver get release > ./dist/version
 # BUILD FOR LOCAL DEVELOPMENT
 ###################
 
-FROM golang:1.21-alpine3.18 As build
+FROM golang:1.26-alpine3.23 As build
 
 # Root working dir
 WORKDIR /app-src

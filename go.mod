@@ -1,3 +1,3 @@
 module github.com/ja88a/vrfs-go-merkletree
 
-go 1.21.4
+go 1.25.0
