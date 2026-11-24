@@ -40,7 +40,11 @@ docker-build-vrfs:
 docker-build-fserver:
 	docker build -f ./vrfs-fs/Dockerfile -t vrfs-fs:latest .
 
-docker-compose-up:
+# Create .env from the example only when missing: an existing file is never modified
+.env:
+	cp .env.example .env
+
+docker-compose-up: .env
 	docker compose up --build --force-recreate --remove-orphans
 
 docker-cleanup:

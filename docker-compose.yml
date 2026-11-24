@@ -28,7 +28,7 @@ services:
       GRPC_PORT: ':50051'
       LOG_LEVEL: 'info'
       REDIS_ENDPOINT: 'vrfs-cache:6379'
-      REDIS_PASSWORD: 'hSy2TiQFw8Yyzs4oxqjzwvoM'
+      REDIS_PASSWORD: '${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env - see .env.example}'
       FSAPI_ENDPOINT: 'vrfs-fs:9000'
     links:
       - vrfs-cache
@@ -69,9 +69,17 @@ services:
     restart: unless-stopped
     ports:
       - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning --requirepass hSy2TiQFw8Yyzs4oxqjzwvoM
+    command:
+      - redis-server
+      - --save
+      - '20'
+      - '1'
+      - --loglevel
+      - warning
+      - --requirepass
+      - '${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env - see .env.example}'
     volumes: 
-      - db_data:/data/cache
+      - db_data:/data
     networks:
       - vrfs-network
 

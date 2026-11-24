@@ -2,6 +2,7 @@ package rservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,6 +19,12 @@ import (
 	pb "github.com/ja88a/vrfs-go-merkletree/libs/rpcapi/protos/v1/vrfs-fs"
 )
 
+// Max time to wait for the next message of a download stream. The total transfer time is not limited
+const downloadIdleTimeout = 2 * time.Second
+
+// ErrUploadInterrupted is returned when a shutdown signal stops an upload
+var ErrUploadInterrupted = errors.New("upload interrupted by a shutdown signal")
+
 // FTService is the client API for FTService
 type FTService interface {
 	// Local file data transfer protocol based on gRPC streaming, in chunks
@@ -30,14 +37,14 @@ type FTService interface {
 
 // File transfer service's client and context info
 type fTService struct {
-	// Protobuf client
-	client pb.FileServiceClient
-
 	// Endpoint of the FileTransfer service (host:port)
 	endpoint string
 
 	// Max size of data chunks while transferring
 	dataChunkMaxSize int
+
+	// Max time to wait for the next message of a download stream
+	idleTimeout time.Duration
 
 	// Toogle for verbose log output
 	debug bool
@@ -48,6 +55,7 @@ func NewFileTransfer(addr string, chunkSize int, verbose bool) FTService {
 	return &fTService{
 		endpoint:         addr,
 		dataChunkMaxSize: chunkSize,
+		idleTimeout:      downloadIdleTimeout,
 		debug:            verbose,
 	}
 }
@@ -59,26 +67,19 @@ func (s *fTService) initClientConnection() (*grpc.ClientConn, error) {
 		return nil, fmt.Errorf("failed to connect to FS grpc API at '%v'\n%v", s.endpoint, err)
 	}
 
-	s.client = pb.NewFileServiceClient(conn)
-
 	return conn, nil
 }
 
 // Local file data transfer protocol based on gRPC streaming, in chunks
+//
+// The call is synchronous and safe for concurrent use. A shutdown signal stops it with ErrUploadInterrupted.
 func (s *fTService) UploadFile(bucketId string, filePath string) error {
 	if s.debug {
 		log.Printf("Sending file '%v' to FS bucket '%v' at '%v'", filePath, bucketId, s.endpoint)
 	}
 
-	interrupt := make(chan os.Signal, 1)
-	shutdownSignals := []os.Signal{
-		os.Interrupt,
-		syscall.SIGTERM,
-		syscall.SIGINT,
-		syscall.SIGQUIT,
-	}
-
-	signal.Notify(interrupt, shutdownSignals...)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	conn, err := s.initClientConnection()
 	if err != nil {
@@ -86,34 +87,24 @@ func (s *fTService) UploadFile(bucketId string, filePath string) error {
 	}
 	defer conn.Close()
 
-	s.client = pb.NewFileServiceClient(conn)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go func(s *fTService) {
-		if err := s.upload(ctx, cancel, bucketId, filePath); err != nil {
-			log.Fatalf("Upload of file '%v' to FS bucket '%v' has failed\n%v", filePath, bucketId, err)
-			cancel()
+	if err := s.upload(ctx, pb.NewFileServiceClient(conn), bucketId, filePath); err != nil {
+		if ctx.Err() != nil {
+			err = ErrUploadInterrupted
 		}
-	}(s)
-
-	select {
-	case killSignal := <-interrupt:
-		log.Printf("Kill signal received (%v)\n", killSignal)
-		cancel()
-	case <-ctx.Done():
+		return fmt.Errorf("upload of file '%v' to FS bucket '%v' has failed\n%w", filePath, bucketId, err)
 	}
 	return nil
 }
 
 // Upload 1 file, using chunks with a max size, to the specified file storage's bucket
-func (s *fTService) upload(ctx context.Context, cancel context.CancelFunc, bucketId string, filePath string) error {
-	stream, err := s.client.Upload(ctx)
+func (s *fTService) upload(ctx context.Context, client pb.FileServiceClient, bucketId string, filePath string) error {
+	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
-	file, err := os.Open(filePath)
+	defer file.Close()
+
+	stream, err := client.Upload(ctx)
 	if err != nil {
 		return err
 	}
@@ -122,7 +113,7 @@ func (s *fTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 
 	// Loop over the file data per the specified max batch size
 	buf := make([]byte, s.dataChunkMaxSize)
-	batchNumber := 1
+	sentChunks := 0
 	for {
 		num, err := file.Read(buf)
 		if err == io.EOF {
@@ -134,13 +125,26 @@ func (s *fTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 		chunk := buf[:num]
 
 		// Send the file chunk over gRPC
-		if err := stream.Send(&pb.FileUploadRequest{BucketId: bucketId, FileName: fileName, Chunk: chunk}); err != nil {
+		err = stream.Send(&pb.FileUploadRequest{BucketId: bucketId, FileName: fileName, Chunk: chunk})
+		if err == io.EOF {
+			// The server ended the stream: its status is returned by CloseAndRecv
+			break
+		}
+		if err != nil {
 			return err
 		}
+		sentChunks++
 		if s.debug {
-			log.Printf("Sent chunk #%v of size %v\n", batchNumber, len(chunk))
+			log.Printf("Sent chunk #%v of size %v\n", sentChunks, len(chunk))
 		}
-		batchNumber += 1
+	}
+
+	// An empty file still needs its metadata to reach the server
+	if sentChunks == 0 {
+		err := stream.Send(&pb.FileUploadRequest{BucketId: bucketId, FileName: fileName})
+		if err != nil && err != io.EOF {
+			return err
+		}
 	}
 
 	res, err := stream.CloseAndRecv()
@@ -150,7 +154,6 @@ func (s *fTService) upload(ctx context.Context, cancel context.CancelFunc, bucke
 	if s.debug {
 		log.Printf("Sent %6d bytes for file %s\n", res.GetSize(), res.GetFileName())
 	}
-	cancel()
 	return nil
 }
 
@@ -165,47 +168,67 @@ func (s *fTService) DownloadFile(bucketId string, fileIndex int) (*rpcfile.File,
 	if err != nil {
 		return nil, fmt.Errorf("failed to init the FileStorage download service \n%w", err)
 	}
-	defer conn.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(2)*time.Second)
-	defer cancel()
+	// The connection must outlive this call: it is released once the stream has been consumed
+	ctx, cancel := context.WithCancel(context.Background())
+	release := func() {
+		cancel()
+		_ = conn.Close()
+	}
+	idle := time.AfterFunc(s.idleTimeout, cancel)
 
-	stream, err := s.client.Download(ctx, &pb.FileDownloadRequest{BucketId: bucketId, FileIndex: int32(fileIndex)})
+	stream, err := pb.NewFileServiceClient(conn).Download(ctx, &pb.FileDownloadRequest{BucketId: bucketId, FileIndex: int32(fileIndex)})
 	if err != nil {
+		idle.Stop()
+		release()
 		return nil, fmt.Errorf("failed to download file #%d from FS bucket '%v' \n%w", fileIndex, bucketId, err)
 	}
 
 	md, err := stream.Header()
+	if err == nil && md == nil {
+		// gRPC reports a stream that failed before its headers through Recv only
+		_, err = stream.Recv()
+		if err == nil || err == io.EOF {
+			err = errors.New("stream ended without file metadata")
+		}
+	}
 	if err != nil {
+		idle.Stop()
+		release()
 		return nil, fmt.Errorf("failed to retrieve download stream header for file #%d from bucket '%v'\n%w", fileIndex, bucketId, err)
 	}
 
 	pReader, pWriter := io.Pipe()
 	rFile := rpcfile.NewFromMetadata(md, pReader)
-	go copyFromResponse(pWriter, stream)
+	go func() {
+		defer release()
+		copyFromResponse(pWriter, stream, idle, s.idleTimeout)
+	}()
 
 	return rFile, nil
 }
 
-// Aggregate the chunks of a data stream to a local file
-func copyFromResponse(w *io.PipeWriter, stream pb.FileService_DownloadClient) {
+// Aggregate the chunks of a data stream to a local file.
+// The idle timer only runs while waiting for the server, so that a slow reader is not penalized.
+func copyFromResponse(w *io.PipeWriter, stream pb.FileService_DownloadClient, idle *time.Timer, idleTimeout time.Duration) {
+	defer idle.Stop()
+
 	message := new(pb.FileDownloadResponse)
-	var err error
 	for {
-		err = stream.RecvMsg(message)
+		idle.Reset(idleTimeout)
+		err := stream.RecvMsg(message)
+		idle.Stop()
 		if err == io.EOF {
 			_ = w.Close()
-			break
+			return
 		}
 		if err != nil {
 			_ = w.CloseWithError(err)
-			break
+			return
 		}
 		if len(message.GetChunk()) > 0 {
-			_, err = w.Write(message.Chunk)
-			if err != nil {
-				_ = stream.CloseSend()
-				break
+			if _, err := w.Write(message.Chunk); err != nil {
+				return
 			}
 		}
 		message.Chunk = message.Chunk[:0]

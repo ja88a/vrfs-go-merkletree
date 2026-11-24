@@ -12,7 +12,7 @@
         "GRPC_PORT": ":50051",
         "LOG_LEVEL": "debug",
         // "REDIS_ENDPOINT": "vrfs-cache:6379",
-        // "REDIS_PASSWORD": "hSy2TiQFw8Yyzs4oxqjzwvoM",
+        // REDIS_PASSWORD is read from the git-ignored .env file
         // "FSAPI_ENDPOINT": "vrfs-fs:9000"
       },
       "args": [""]
