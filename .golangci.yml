@@ -1,6 +1,8 @@
+version: "2"
+
 run:
-  go: '1.21'
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  go: '1.25'
+  # timeout for analysis, e.g. 30s, 5m
   timeout: 2m
   # exit code when at least one issue was found, default is 1
   issues-exit-code: 0
@@ -9,98 +11,64 @@ run:
   # modules-download-mode: vendor #readonly #|release|vendor
 
 linters:
-  disable-all: true
+  default: none
   enable:
     # Style checkers
     - errname # errors prefixed with Err and error types suffixed with Error
-    - gofmt
-    - goimports
     - misspell # finds commonly misspelled words
     - nestif # deeply nested if statements
-    - stylecheck # (enabled by default)
     - wastedassign # Finds wasted assignment statements
 
     # Bug finders
     - asciicheck
     - bodyclose # HTTP response body is closed successfully
     - contextcheck # checks non-inherited context
-    - errcheck # unchecked errors (enabled by default)
+    - errcheck # unchecked errors
     - gosec # inspects source code for security problems
-    - gosimple
-    - govet # suspicious constructs (enabled by default)
-    - ineffassign # assignments to existing variables are not used (enabled by default)
+    - govet # suspicious constructs
+    - ineffassign # assignments to existing variables are not used
     # - rowserrcheck # Err of rows is checked successfully
     # - sqlclosecheck # sql.Rows and sql.Stmt are closed
-    - staticcheck
-    - typecheck # (enabled by default)
+    - staticcheck # includes the former gosimple and stylecheck linters
     - unparam # reports unused function parameters
-    - unused # unused constants, variables, functions and types (enabled by default)
+    - unused # unused constants, variables, functions and types
 
-#  disable:
-#    - goerr113 # checks errors are checked correctly
-#    - gosimple # same as staticcheck linter
+  # The v1 file nested these settings under `linters`, so golangci-lint never
+  # applied them. They are kept disabled to preserve the current lint results.
+  # settings:
+  #   govet:
+  #     enable:
+  #       - shadow
+  #   staticcheck:
+  #     checks: ["all", "-ST1000", "-ST1003"]
+  #     initialisms: [
+  #       "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA",
+  #       "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS",
+  #       "SIP", "RTP", "AMQP", "DB", "TS",
+  #     ]
+  #     http-status-code-whitelist: ["200", "400", "404", "500"]
+  #   errcheck:
+  #     check-type-assertions: true
+  #     check-blank: true
+  #   misspell:
+  #     locale: US
 
-  linters-settings:
-    govet:
-      # Report about shadowed variables.
-      check-shadowing: true
-    stylecheck:
-      # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
-      # Default: ["*"]
-      checks: [
-        # https://staticcheck.io/docs/checks/
-        # Enable all rules by default (opinionated):
-        "all",
-        # Disable rules:
-        "-ST1000", # Package comments.
-        "-ST1003", # Capitalizations in fields' camel case name, e.g. 'nameID' instead of 'nameId'
-      ]
+formatters:
+  enable:
+    - gofmt
+    - goimports
 
-      initialisms: [
-        # Common.
-        "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA",
-        "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS",
-        "SIP", "RTP", "AMQP", "DB", "TS",
-        # Domain specific.
-      ]
-
-      # https://staticcheck.io/docs/configuration/options/#http_status_code_whitelist
-      # Default: ["200", "400", "404", "500"]
-      http-status-code-whitelist: ["200", "400", "404", "500"]
-
-#    rowserrcheck:
-#      # database/sql is always checked
-#      # Default: []
-#      packages:
-#        - github.com/jmoiron/sqlx
-
-    errcheck:
-      # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
-      check-type-assertions: true
-      # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`.
-      check-blank: true
-
-    misspell:
-      locale: US
-
-  issues:
-    # Maximum issues count per one linter. Set to 0 to disable.
-    max-issues-per-linter: 100
-    # Maximum count of issues with the same text. Set to 0 to disable.
-    max-same-issues: 100
-    # Fix found issues (if it's supported by the linter)
-    fix: false
+# Also not applied by the v1 file, for the same reason.
+# issues:
+#   max-issues-per-linter: 100
+#   max-same-issues: 100
+#   fix: false
 
 output:
-  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
-  # Output path can be either `stdout`, `stderr` or path to the file to write to.
-  # Example: "checkstyle:report.json,colored-line-number"
-  format: "github-actions,colored-line-number"
-  # Print lines of code with issue.
-  print-issued-lines: true
-  # Print linter name in the end of issue text.
-  print-linter-name: true
-  # Make issues output unique by line.
-  uniq-by-line: false
-  # Sort results by: filepath, line and column.
-  sort-results: true
+  formats:
+    text:
+      path: stdout
+      # Print lines of code with issue.
+      print-issued-lines: true
+      # Print linter name in the end of issue text.
+      print-linter-name: true
